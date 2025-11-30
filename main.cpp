@@ -318,6 +318,17 @@ double greatCircleMiles(const Airport& a, const Airport& b)
     return dist_km * 0.621371; // km -> miles
 }
 
+// Rebuild adjacency list after bulk route changes (delete / update)
+void rebuildRoutesAdjacency()
+{
+    routesFromSrc.clear();
+    for (std::size_t i = 0; i < routes.size(); ++i) {
+        const Route& r = routes[i];
+        routesFromSrc[r.srcAirportId].push_back(i);
+    }
+}
+
+
 // ----------------- Crow handlers -----------------
 
 int main(int argc, char* argv[])
@@ -359,14 +370,37 @@ int main(int argc, char* argv[])
     // Serve static files from /static folder
     CROW_ROUTE(app, "/static/<string>")
     ([](const std::string& filename){
-        std::ifstream file("static/" + filename);
+        std::string path = "static/" + filename;
+        std::ifstream file(path, std::ios::binary);
         if (!file) {
             return crow::response(404);
         }
+
         std::stringstream buffer;
         buffer << file.rdbuf();
-        return crow::response(buffer.str());
+
+        crow::response resp(buffer.str());
+
+        // detect extension
+        if (filename.size() >= 5 && filename.substr(filename.size() - 4) == ".png") {
+            resp.set_header("Content-Type", "image/png");
+        } else if (filename.size() >= 5 && filename.substr(filename.size() - 4) == ".jpg") {
+            resp.set_header("Content-Type", "image/jpeg");
+        } else if (filename.size() >= 5 && filename.substr(filename.size() - 4) == ".gif") {
+            resp.set_header("Content-Type", "image/gif");
+        } else if (filename.size() >= 5 && filename.substr(filename.size() - 5) == ".html") {
+            resp.set_header("Content-Type", "text/html; charset=UTF-8");
+        } else if (filename.size() >= 3 && filename.substr(filename.size() - 3) == ".js") {
+            resp.set_header("Content-Type", "application/javascript");
+        } else if (filename.size() >= 4 && filename.substr(filename.size() - 4) == ".css") {
+            resp.set_header("Content-Type", "text/css");
+        } else {
+            resp.set_header("Content-Type", "application/octet-stream");
+        }
+
+        return resp;
     });
+
 
     // /id endpoint
     CROW_ROUTE(app, "/id")([](){
@@ -613,8 +647,6 @@ int main(int argc, char* argv[])
         return crow::response{j};
     });
 
-        // ----------- NEW: In-memory update endpoints (extra feature) -----------
-
     // Add a new airline
     CROW_ROUTE(app, "/airline-add").methods(crow::HTTPMethod::Post)
     ([](const crow::request& req){
@@ -630,15 +662,8 @@ int main(int argc, char* argv[])
         int id = body["id"].i();
         std::string iataRaw = body["iata"].s();
         std::string name = body["name"].s();
-        std::string country;
-        if (body.has("country")) {
-            country = std::string(body["country"].s());
-        } else {
-            country = "";
-        }
-
+        std::string country = body.has("country") ? std::string(body["country"].s()) : "";
         bool active = body.has("active") ? body["active"].b() : true;
-
 
         if (airlineIdToIndex.find(id) != airlineIdToIndex.end()) {
             return crow::response(400, "Airline with that ID already exists");
@@ -729,6 +754,67 @@ int main(int argc, char* argv[])
         return crow::response{resp};
     });
 
+    // Delete an airline and remove all its routes
+    CROW_ROUTE(app, "/airline-delete").methods(crow::HTTPMethod::Post)
+    ([](const crow::request& req){
+        auto body = crow::json::load(req.body);
+        if (!body) {
+            return crow::response(400, "Invalid JSON");
+        }
+        if (!body.has("id")) {
+            return crow::response(400, "Missing required field: id");
+        }
+
+        int id = body["id"].i();
+
+        auto it = airlineIdToIndex.find(id);
+        if (it == airlineIdToIndex.end()) {
+            return crow::response(404, "Airline ID not found");
+        }
+        std::size_t idx = it->second;
+        Airline toDelete = airlines[idx];
+
+        // 1) Remove airline from vector
+        airlines.erase(airlines.begin() + static_cast<long>(idx));
+
+        // 2) Rebuild airline index maps (indices shifted)
+        airlineIdToIndex.clear();
+        airlineIataToIndex.clear();
+        for (std::size_t i = 0; i < airlines.size(); ++i) {
+            const Airline& a = airlines[i];
+            airlineIdToIndex[a.id] = i;
+            if (!a.iata.empty() && a.iata != "\\N") {
+                airlineIataToIndex[a.iata] = i;
+            }
+        }
+
+        // 3) Remove routes for this airline and rebuild routesFromSrc
+        int removedRoutes = 0;
+        std::vector<Route> newRoutes;
+        newRoutes.reserve(routes.size());
+
+        for (std::size_t i = 0; i < routes.size(); ++i) {
+            const Route& r = routes[i];
+            if (r.airlineId == id) {
+                ++removedRoutes;
+                continue;
+            }
+            newRoutes.push_back(r);
+        }
+        routes.swap(newRoutes);
+        rebuildRoutesAdjacency();
+
+        crow::json::wvalue resp;
+        resp["status"] = "ok";
+        resp["message"] = "Airline deleted and routes removed in memory";
+        resp["airline"]["id"] = toDelete.id;
+        resp["airline"]["iata"] = toDelete.iata;
+        resp["airline"]["name"] = toDelete.name;
+        resp["removed_routes"] = removedRoutes;
+
+        return crow::response{resp};
+    });
+
     // Add a new airport
     CROW_ROUTE(app, "/airport-add").methods(crow::HTTPMethod::Post)
     ([](const crow::request& req){
@@ -796,6 +882,61 @@ int main(int argc, char* argv[])
         return crow::response{resp};
     });
 
+    // Add a new airport
+    CROW_ROUTE(app, "/airport-add").methods(crow::HTTPMethod::Post)
+    ([](const crow::request& req){
+        auto body = crow::json::load(req.body);
+        if (!body) {
+            return crow::response(400, "Invalid JSON");
+        }
+
+        if (!body.has("id") || !body.has("iata") || !body.has("name")) {
+            return crow::response(400, "Missing required fields: id, iata, name");
+        }
+
+        int id = body["id"].i();
+        std::string iataRaw = body["iata"].s();
+        std::string name = body["name"].s();
+        std::string city = body.has("city") ? std::string(body["city"].s()) : "";
+        std::string country = body.has("country") ? std::string(body["country"].s()) : "";
+        double lat = body.has("latitude") ? body["latitude"].d() : 0.0;
+        double lon = body.has("longitude") ? body["longitude"].d() : 0.0;
+
+        if (airportIdToIndex.find(id) != airportIdToIndex.end()) {
+            return crow::response(400, "Airport with that ID already exists");
+        }
+
+        Airport a;
+        a.id = id;
+        a.iata = toUpper(trim(iataRaw));
+        a.name = trim(name);
+        a.city = trim(city);
+        a.country = trim(country);
+        a.latitude = lat;
+        a.longitude = lon;
+
+        std::size_t index = airports.size();
+        airports.push_back(a);
+
+        airportIdToIndex[a.id] = index;
+        if (!a.iata.empty() && a.iata != "\\N") {
+            airportIataToIndex[a.iata] = index;
+        }
+
+        crow::json::wvalue resp;
+        resp["status"] = "ok";
+        resp["message"] = "Airport added in memory";
+        resp["airport"]["id"] = a.id;
+        resp["airport"]["iata"] = a.iata;
+        resp["airport"]["name"] = a.name;
+        resp["airport"]["city"] = a.city;
+        resp["airport"]["country"] = a.country;
+        resp["airport"]["latitude"] = a.latitude;
+        resp["airport"]["longitude"] = a.longitude;
+
+        return crow::response{resp};
+    });
+
     // Update an existing airport (by ID)
     CROW_ROUTE(app, "/airport-update").methods(crow::HTTPMethod::Post)
     ([](const crow::request& req){
@@ -815,7 +956,6 @@ int main(int argc, char* argv[])
 
         std::size_t index = it->second;
         Airport& a = airports[index];
-
         std::string oldIata = a.iata;
 
         if (body.has("iata")) {
@@ -856,6 +996,67 @@ int main(int argc, char* argv[])
         resp["airport"]["country"] = a.country;
         resp["airport"]["latitude"] = a.latitude;
         resp["airport"]["longitude"] = a.longitude;
+
+        return crow::response{resp};
+    });
+
+    // Delete an airport and all routes that use it
+    CROW_ROUTE(app, "/airport-delete").methods(crow::HTTPMethod::Post)
+    ([](const crow::request& req){
+        auto body = crow::json::load(req.body);
+        if (!body) {
+            return crow::response(400, "Invalid JSON");
+        }
+        if (!body.has("id")) {
+            return crow::response(400, "Missing required field: id");
+        }
+
+        int id = body["id"].i();
+
+        auto it = airportIdToIndex.find(id);
+        if (it == airportIdToIndex.end()) {
+            return crow::response(404, "Airport ID not found");
+        }
+        std::size_t idx = it->second;
+        Airport toDelete = airports[idx];
+
+        // Remove airport
+        airports.erase(airports.begin() + static_cast<long>(idx));
+
+        // Rebuild airport maps
+        airportIdToIndex.clear();
+        airportIataToIndex.clear();
+        for (std::size_t i = 0; i < airports.size(); ++i) {
+            const Airport& a = airports[i];
+            airportIdToIndex[a.id] = i;
+            if (!a.iata.empty() && a.iata != "\\N") {
+                airportIataToIndex[a.iata] = i;
+            }
+        }
+
+        // Remove routes touching this airport
+        int removedRoutes = 0;
+        std::vector<Route> newRoutes;
+        newRoutes.reserve(routes.size());
+
+        for (std::size_t i = 0; i < routes.size(); ++i) {
+            const Route& r = routes[i];
+            if (r.srcAirportId == id || r.dstAirportId == id) {
+                ++removedRoutes;
+                continue;
+            }
+            newRoutes.push_back(r);
+        }
+        routes.swap(newRoutes);
+        rebuildRoutesAdjacency();
+
+        crow::json::wvalue resp;
+        resp["status"] = "ok";
+        resp["message"] = "Airport deleted and its routes removed in memory";
+        resp["airport"]["id"] = toDelete.id;
+        resp["airport"]["iata"] = toDelete.iata;
+        resp["airport"]["name"] = toDelete.name;
+        resp["removed_routes"] = removedRoutes;
 
         return crow::response{resp};
     });
@@ -904,6 +1105,129 @@ int main(int argc, char* argv[])
         resp["route"]["src_id"] = srcId;
         resp["route"]["dst_id"] = dstId;
         resp["route"]["stops"] = stops;
+
+        return crow::response{resp};
+    });
+
+    // Update an existing route (identified by old airline + src + dst)
+    // This updates the first matching route.
+    CROW_ROUTE(app, "/route-update").methods(crow::HTTPMethod::Post)
+    ([](const crow::request& req){
+        auto body = crow::json::load(req.body);
+        if (!body) {
+            return crow::response(400, "Invalid JSON");
+        }
+
+        if (!body.has("old_airline_id") || !body.has("old_src_id") || !body.has("old_dst_id")) {
+            return crow::response(400, "Missing required fields: old_airline_id, old_src_id, old_dst_id");
+        }
+
+        int oldAirline = body["old_airline_id"].i();
+        int oldSrc     = body["old_src_id"].i();
+        int oldDst     = body["old_dst_id"].i();
+
+        int newAirline = body.has("new_airline_id") ? body["new_airline_id"].i() : oldAirline;
+        int newSrc     = body.has("new_src_id")     ? body["new_src_id"].i()     : oldSrc;
+        int newDst     = body.has("new_dst_id")     ? body["new_dst_id"].i()     : oldDst;
+        int newStops   = body.has("new_stops")      ? body["new_stops"].i()      : 0;
+
+        // Validate new IDs
+        if (airlineIdToIndex.find(newAirline) == airlineIdToIndex.end()) {
+            return crow::response(400, "Unknown new_airline_id");
+        }
+        if (airportIdToIndex.find(newSrc) == airportIdToIndex.end()) {
+            return crow::response(400, "Unknown new_src_id");
+        }
+        if (airportIdToIndex.find(newDst) == airportIdToIndex.end()) {
+            return crow::response(400, "Unknown new_dst_id");
+        }
+
+        bool found = false;
+        for (std::size_t i = 0; i < routes.size(); ++i) {
+            Route& r = routes[i];
+            if (r.airlineId == oldAirline &&
+                r.srcAirportId == oldSrc &&
+                r.dstAirportId == oldDst) {
+                r.airlineId    = newAirline;
+                r.srcAirportId = newSrc;
+                r.dstAirportId = newDst;
+                r.stops        = newStops;
+                found = true;
+                break; // update first match
+            }
+        }
+
+        if (!found) {
+            return crow::response(404, "Matching route not found");
+        }
+
+        rebuildRoutesAdjacency();
+
+        crow::json::wvalue resp;
+        resp["status"] = "ok";
+        resp["message"] = "Route updated in memory";
+        resp["route"]["airline_id"] = newAirline;
+        resp["route"]["src_id"]     = newSrc;
+        resp["route"]["dst_id"]     = newDst;
+        resp["route"]["stops"]      = newStops;
+
+        return crow::response{resp};
+    });
+
+    // Delete route(s) that match airline + src + dst (+ optional stops)
+    CROW_ROUTE(app, "/route-delete").methods(crow::HTTPMethod::Post)
+    ([](const crow::request& req){
+        auto body = crow::json::load(req.body);
+        if (!body) {
+            return crow::response(400, "Invalid JSON");
+        }
+
+        if (!body.has("airline_id") || !body.has("src_id") || !body.has("dst_id")) {
+            return crow::response(400, "Missing required fields: airline_id, src_id, dst_id");
+        }
+
+        int airlineId = body["airline_id"].i();
+        int srcId     = body["src_id"].i();
+        int dstId     = body["dst_id"].i();
+        bool hasStopsFilter = body.has("stops");
+        int stopsFilter     = hasStopsFilter ? body["stops"].i() : 0;
+
+        int removed = 0;
+        std::vector<Route> newRoutes;
+        newRoutes.reserve(routes.size());
+
+        for (std::size_t i = 0; i < routes.size(); ++i) {
+            const Route& r = routes[i];
+            bool match = (r.airlineId == airlineId &&
+                        r.srcAirportId == srcId &&
+                        r.dstAirportId == dstId);
+            if (match && hasStopsFilter) {
+                match = (r.stops == stopsFilter);
+            }
+            if (match) {
+                ++removed;
+                continue;
+            }
+            newRoutes.push_back(r);
+        }
+
+        if (!removed) {
+            return crow::response(404, "No matching routes found to delete");
+        }
+
+        routes.swap(newRoutes);
+        rebuildRoutesAdjacency();
+
+        crow::json::wvalue resp;
+        resp["status"] = "ok";
+        resp["message"] = "Route(s) deleted in memory";
+        resp["removed_routes"] = removed;
+        resp["filter"]["airline_id"] = airlineId;
+        resp["filter"]["src_id"]     = srcId;
+        resp["filter"]["dst_id"]     = dstId;
+        if (hasStopsFilter) {
+            resp["filter"]["stops"] = stopsFilter;
+        }
 
         return crow::response{resp};
     });

@@ -1,886 +1,1644 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <title>Air Travel Database</title>
-    <style>
-        * { box-sizing: border-box; }
+  <meta charset="UTF-8" />
+  <title>Air Travel Database – CIS22C Honors</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <style>
+    :root {
+      --bg: #020617;
+      --bg-elevated: #020617;
+      --panel: rgba(15,23,42,0.96);
+      --panel-soft: rgba(15,23,42,0.9);
+      --panel-strong: rgba(15,23,42,1);
+      --accent: #38bdf8;
+      --accent-soft: rgba(56,189,248,0.12);
+      --accent-strong: #0ea5e9;
+      --accent-gradient: linear-gradient(135deg,#38bdf8,#22c55e);
+      --danger: #f97373;
+      --muted: #94a3b8;
+      --text: #e2e8f0;
+      --border-subtle: rgba(148,163,184,0.45);
+      --shadow-soft: 0 20px 45px rgba(15,23,42,0.9);
+      --particle-color: rgba(148,163,184,0.28);
+    }
 
-        :root[data-theme="dark"] {
-            --bg: #020617;
-            --bg-alt: #020617;
-            --card: #020617;
-            --border: #1f2937;
-            --border-soft: #4b5563;
-            --accent: #3b82f6;
-            --accent-soft: #1d4ed8;
-            --accent-text: #f9fafb;
-            --text: #e5e7eb;
-            --muted: #9ca3af;
-            --shadow-soft: 0 8px 24px rgba(0,0,0,0.35);
-            --shadow-strong: 0 20px 45px rgba(0,0,0,0.6);
-            --particle-color: rgba(148,163,184,0.35);
-        }
+    [data-theme="light"] {
+      --bg: #e5f0ff;
+      --bg-elevated: #e5f0ff;
+      --panel: #f8fafc;
+      --panel-soft: #f1f5f9;
+      --panel-strong: #ffffff;
+      --accent: #0284c7;
+      --accent-soft: rgba(56,189,248,0.12);
+      --accent-strong: #0369a1;
+      --accent-gradient: linear-gradient(135deg,#0ea5e9,#22c55e);
+      --danger: #dc2626;
+      --muted: #64748b;
+      --text: #0f172a;
+      --border-subtle: rgba(148,163,184,0.6);
+      --shadow-soft: 0 12px 40px rgba(15,23,42,0.2);
+      --particle-color: rgba(148,163,184,0.4);
+    }
 
-        :root[data-theme="light"] {
-            --bg: #f3f4f6;
-            --bg-alt: #ffffff;
-            --card: #ffffff;
-            --border: #d1d5db;
-            --border-soft: #cbd5e1;
-            --accent: #2563eb;
-            --accent-soft: #1d4ed8;
-            --accent-text: #f9fafb;
-            --text: #111827;
-            --muted: #6b7280;
-            --shadow-soft: 0 6px 18px rgba(15,23,42,0.15);
-            --shadow-strong: 0 18px 40px rgba(15,23,42,0.25);
-            --particle-color: rgba(148,163,184,0.25);
-        }
+    * {
+      box-sizing: border-box;
+    }
 
-        body {
-            margin: 0;
-            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-            background: var(--bg);
-            color: var(--text);
-            transition: background-color 0.25s ease, color 0.25s ease;
-            overflow-x: hidden;
-        }
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif;
+      background: radial-gradient(circle at top, #020617 0%, #000 55%);
+      color: var(--text);
+    }
 
-        /* Particle background */
-        #bgCanvas {
-            position: fixed;
-            inset: 0;
-            z-index: 0;
-            pointer-events: none;
-        }
+    body {
+      position: relative;
+      overflow-x: hidden;
+    }
 
-        .app {
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-            position: relative;
-            z-index: 1;
-        }
+    #bgCanvas {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      pointer-events: none;
+      opacity: 0.35;
+    }
 
-        /* HEADER */
-        .app-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 12px 24px;
-            background: var(--bg-alt);
-            border-bottom: 1px solid var(--border);
-            box-shadow: var(--shadow-soft);
-            transition: background-color 0.25s ease, border-color 0.25s ease;
-        }
-        .app-title-wrap {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        .app-title {
-            font-size: 20px;
-            font-weight: 600;
-        }
+    #app {
+      position: relative;
+      z-index: 1;
+      min-height: 100vh;
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      padding: 24px 16px 40px;
+    }
 
-        .header-right {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-        .id-chip {
-            font-size: 12px;
-            color: var(--muted);
-            max-width: 220px;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-        .icon-btn {
-            width: 30px;
-            height: 30px;
-            border-radius: 999px;
-            border: 1px solid var(--border-soft);
-            background: var(--bg);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            transition:
-              background 0.15s ease,
-              transform 0.1s ease,
-              border-color 0.15s ease,
-              box-shadow 0.15s ease;
-            position: relative;
-            overflow: hidden;
-        }
-        .icon-btn span {
-            font-size: 16px;
-            display: inline-block;
-            transition: transform 0.25s ease;
-        }
-        .icon-btn:hover {
-            background: var(--bg-alt);
-            border-color: var(--accent);
-            transform: translateY(-1px);
-            box-shadow: var(--shadow-soft);
-        }
-        .icon-btn:active {
-            transform: translateY(0);
-            box-shadow: none;
-        }
+    .app-shell {
+      width: 100%;
+      max-width: 1200px;
+      border-radius: 24px;
+      background: radial-gradient(circle at top left, rgba(56,189,248,0.18), transparent 60%), var(--panel);
+      box-shadow: var(--shadow-soft);
+      border: 1px solid rgba(148,163,184,0.32);
+      backdrop-filter: blur(14px);
+      padding: 18px 18px 20px;
+    }
 
-        .app-body {
-            flex: 1;
-            display: flex;
-            min-height: 0;
-        }
+    .app-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 12px;
+    }
 
-        /* SIDEBAR */
-        .sidebar {
-            width: 260px;
-            background: var(--bg-alt);
-            border-right: 1px solid var(--border);
-            padding: 18px 14px;
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-            transition: background-color 0.25s ease, border-color 0.25s ease;
-        }
-        .sidebar-title {
-            font-size: 13px;
-            text-transform: uppercase;
-            letter-spacing: 0.08em;
-            color: var(--muted);
-            margin-bottom: 6px;
-        }
-        .menu-btn {
-            width: 100%;
-            text-align: left;
-            padding: 10px 11px;
-            border-radius: 10px;
-            border: none;
-            background: transparent;
-            color: var(--text);
-            font-size: 14px;
-            cursor: pointer;
-            transition: background 0.15s ease, color 0.15s ease, transform 0.1s ease;
-            position: relative;
-            overflow: hidden;
-        }
-        .menu-btn span {
-            font-size: 12px;
-            color: var(--muted);
-            display: block;
-        }
-        .menu-btn:hover {
-            background: rgba(59,130,246,0.08);
-            transform: translateY(-1px);
-        }
-        .menu-btn.active {
-            background: var(--accent);
-            color: var(--accent-text);
-        }
-        .menu-btn.active span {
-            color: #e5e7eb;
-        }
+    .app-title {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
 
-        /* MAIN */
-        .main {
-            flex: 1;
-            padding: 22px 30px;
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-        }
-        .panel {
-            display: none;
-            background: var(--card);
-            border-radius: 14px;
-            padding: 18px 20px;
-            border: 1px solid var(--border);
-            box-shadow: var(--shadow-soft);
-            opacity: 0;
-            transform: translateY(8px) scale(0.98);
-            transition:
-              opacity 0.22s ease,
-              transform 0.22s ease,
-              background-color 0.25s ease,
-              border-color 0.25s ease;
-        }
-        .panel.active {
-            display: block;
-            opacity: 1;
-            transform: translateY(0) scale(1);
-        }
-        .panel-title {
-            font-size: 18px;
-            font-weight: 600;
-            margin-bottom: 6px;
-        }
-        .panel-desc {
-            font-size: 13px;
-            color: var(--muted);
-            margin-bottom: 16px;
-        }
-        .form-row {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 10px;
-            align-items: center;
-            margin-bottom: 8px;
-        }
-        .form-row label {
-            font-size: 14px;
-        }
-        .input {
-            padding: 7px 10px;
-            border-radius: 8px;
-            border: 1px solid var(--border-soft);
-            background: var(--bg);
-            color: var(--text);
-            min-width: 120px;
-            transition: border-color 0.15s ease, background-color 0.25s ease, box-shadow 0.15s ease;
-        }
-        .input::placeholder {
-            color: var(--muted);
-        }
-        .input:focus {
-            outline: none;
-            border-color: var(--accent);
-            box-shadow: 0 0 0 1px rgba(37,99,235,0.35);
-        }
-        .btn {
-            border: none;
-            background: var(--accent);
-            color: var(--accent-text);
-            padding: 7px 16px;
-            border-radius: 999px;
-            font-size: 13px;
-            cursor: pointer;
-            transition:
-              background 0.15s ease,
-              transform 0.1s ease,
-              box-shadow 0.15s ease;
-            position: relative;
-            overflow: hidden;
-        }
-        .btn:hover {
-            background: var(--accent-soft);
-            transform: translateY(-1px);
-            box-shadow: var(--shadow-soft);
-        }
-        .btn:active {
-            transform: translateY(0);
-            box-shadow: none;
-        }
+    .app-title-main {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
 
-        /* OUTPUT */
-        .output-card {
-            margin-top: 10px;
-            background: var(--card);
-            border-radius: 14px;
-            border: 1px solid var(--border);
-            padding: 14px 18px;
-            box-shadow: var(--shadow-soft);
-            transition:
-              background-color 0.25s ease,
-              border-color 0.25s ease,
-              transform 0.2s ease,
-              box-shadow 0.2s ease;
-        }
-        .output-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin-bottom: 6px;
-        }
-        .output-title {
-            font-size: 14px;
-            color: var(--muted);
-        }
-        #output {
-            font-size: 13px;
-            max-height: 380px;
-            overflow: auto;
-        }
-        .placeholder {
-            color: var(--muted);
-        }
+    .logo-circle {
+      width: 32px;
+      height: 32px;
+      border-radius: 999px;
+      background: var(--accent-gradient);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      box-shadow: 0 8px 20px rgba(56,189,248,0.45);
+    }
 
-        /* Loader (small) */
-        .loader {
-            width: 18px;
-            height: 18px;
-            border-radius: 999px;
-            border: 2px solid var(--border-soft);
-            border-top-color: var(--accent);
-            animation: spin 0.8s linear infinite;
-            opacity: 0;
-            transform: scale(0.5);
-            transition: opacity 0.15s ease, transform 0.15s ease;
-        }
-        .loader.show {
-            opacity: 1;
-            transform: scale(1);
-        }
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
+    h1 {
+      margin: 0;
+      font-size: 19px;
+      letter-spacing: 0.02em;
+    }
 
-        .info-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-            gap: 10px 16px;
-            padding: 8px 0;
-        }
-        .info-item {
-            font-size: 13px;
-        }
-        .info-label {
-            color: var(--muted);
-            font-size: 11px;
-            text-transform: uppercase;
-            letter-spacing: 0.06em;
-        }
-        .info-value {
-            margin-top: 2px;
-        }
+    .subtitle {
+      margin: 0;
+      font-size: 11px;
+      color: var(--muted);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
 
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: 12px;
-        }
-        th, td {
-            padding: 6px 8px;
-            border-bottom: 1px solid var(--border);
-        }
-        th {
-            text-align: left;
-            background: var(--bg-alt);
-            color: var(--muted);
-            position: sticky;
-            top: 0;
-            transition: background-color 0.2s ease, color 0.2s ease;
-        }
-        tr:nth-child(even) td { background: var(--card); }
-        tr:nth-child(odd)  td { background: var(--card); }
+    .chip-row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-top: 4px;
+    }
 
-        th.sortable {
-            cursor: pointer;
-        }
-        th.sortable::after {
-            content: "";
-            margin-left: 4px;
-            font-size: 10px;
-        }
-        th.sortable[data-sort-dir="asc"]::after  { content: "▲"; }
-        th.sortable[data-sort-dir="desc"]::after { content: "▼"; }
+    .chip {
+      border-radius: 999px;
+      padding: 3px 10px;
+      border: 1px solid rgba(148,163,184,0.35);
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+      background: radial-gradient(circle at top, rgba(148,163,184,0.15), transparent 60%);
+    }
 
-        @media (max-width: 800px) {
-            .app-body { flex-direction: column; }
-            .sidebar {
-                width: 100%;
-                flex-direction: row;
-                overflow-x: auto;
-            }
-            .menu-btn { white-space: nowrap; }
-        }
+    .badge-cta {
+      border-radius: 999px;
+      padding: 3px 9px;
+      font-size: 10px;
+      color: var(--accent-strong);
+      background: rgba(56,189,248,0.12);
+      border: 1px solid rgba(56,189,248,0.3);
+    }
 
-        /* ID MODAL */
-        .modal {
-            position: fixed;
-            inset: 0;
-            background: rgba(15,23,42,0.75);
-            display: none;
-            align-items: center;
-            justify-content: center;
-            z-index: 50;
-        }
-        .modal.show {
-            display: flex;
-        }
-        .modal-card {
-            background: var(--card);
-            border-radius: 14px;
-            padding: 18px 20px;
-            border: 1px solid var(--border);
-            width: 320px;
-            max-width: 90%;
-            box-shadow: var(--shadow-strong);
-            animation: pop 0.18s ease-out;
-        }
-        @keyframes pop {
-            from { opacity: 0; transform: translateY(6px) scale(0.97); }
-            to   { opacity: 1; transform: translateY(0) scale(1); }
-        }
-        .modal-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 8px;
-        }
-        .modal-title {
-            font-size: 15px;
-            font-weight: 600;
-        }
-        .modal-close {
-            border: none;
-            background: transparent;
-            color: var(--muted);
-            font-size: 18px;
-            cursor: pointer;
-        }
-        .modal-body {
-            font-size: 13px;
-        }
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 12px;
+    }
 
-        /* Loading overlay */
-        .loading-overlay {
-            position: fixed;
-            inset: 0;
-            background: rgba(15,23,42,0.45);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 40;
-            opacity: 0;
-            pointer-events: none;
-            transition: opacity 0.25s ease;
-            backdrop-filter: blur(3px);
-        }
-        .loading-overlay.show {
-            opacity: 1;
-            pointer-events: auto;
-        }
-        .loading-overlay-inner {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 10px;
-            color: var(--muted);
-            font-size: 13px;
-        }
-        .loading-overlay-spinner {
-            width: 28px;
-            height: 28px;
-            border-radius: 999px;
-            border: 3px solid rgba(148,163,184,0.5);
-            border-top-color: var(--accent);
-            animation: spin 0.9s linear infinite;
-        }
+    .icon-btn {
+      border-radius: 999px;
+      border: 1px solid rgba(148,163,184,0.45);
+      background: radial-gradient(circle at top, rgba(15,23,42,0.85), rgba(15,23,42,1));
+      color: var(--text);
+      padding: 6px 10px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      cursor: pointer;
+      font-size: 12px;
+      transition: transform 0.1s ease, box-shadow 0.1s ease, border-color 0.1s ease, background 0.1s ease;
+    }
 
-        /* Ripple effect */
-        .ripple {
-            position: absolute;
-            border-radius: 50%;
-            transform: scale(0);
-            animation: ripple 0.45s linear;
-            background: rgba(255,255,255,0.35);
-            pointer-events: none;
-        }
-        @keyframes ripple {
-            to {
-                transform: scale(4);
-                opacity: 0;
-            }
-        }
+    .icon-btn:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 10px 25px rgba(15,23,42,0.6);
+      border-color: var(--accent);
+      background: radial-gradient(circle at top, rgba(15,23,42,0.9), rgba(15,23,42,1));
+    }
 
-        /* Toast notifications */
-        #toastContainer {
-            position: fixed;
-            bottom: 16px;
-            right: 16px;
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-            z-index: 60;
-        }
-        .toast {
-            min-width: 200px;
-            max-width: 320px;
-            padding: 10px 12px;
-            border-radius: 10px;
-            font-size: 12px;
-            box-shadow: var(--shadow-soft);
-            background: var(--card);
-            border: 1px solid var(--border-soft);
-            color: var(--text);
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 8px;
-            opacity: 0;
-            transform: translateY(8px);
-            transition: opacity 0.2s ease, transform 0.2s ease;
-        }
-        .toast.show {
-            opacity: 1;
-            transform: translateY(0);
-        }
-        .toast-message {
-            flex: 1;
-        }
-        .toast-close {
-            border: none;
-            background: transparent;
-            color: var(--muted);
-            cursor: pointer;
-            font-size: 14px;
-        }
-        .toast-success {
-            border-color: rgba(34,197,94,0.5);
-        }
-        .toast-error {
-            border-color: rgba(248,113,113,0.7);
-        }
+    .icon-btn span {
+      font-size: 14px;
+    }
 
-        /* One-hop SVG */
-        .onehop-graph {
-            margin: 8px 0 10px;
-        }
+    .id-chip {
+      border-radius: 999px;
+      padding: 4px 10px;
+      background: rgba(15,23,42,0.9);
+      border: 1px dashed rgba(148,163,184,0.5);
+      font-size: 11px;
+      color: var(--muted);
+      max-width: 230px;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+      overflow: hidden;
+    }
 
-        /* Admin panel sections */
-        .admin-section-title {
-            font-size: 14px;
-            font-weight: 600;
-            margin-top: 6px;
-            margin-bottom: 4px;
-        }
-        .admin-note {
-            font-size: 11px;
-            color: var(--muted);
-            margin-bottom: 8px;
-        }
-        .admin-divider {
-            margin: 8px 0;
-            height: 1px;
-            background: var(--border);
-        }
-    </style>
+    .id-chip strong {
+      color: var(--accent-strong);
+    }
+
+    .btn {
+      border-radius: 999px;
+      border: none;
+      padding: 8px 16px;
+      font-size: 13px;
+      cursor: pointer;
+      background: var(--accent-gradient);
+      color: white;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      box-shadow: 0 10px 30px rgba(56,189,248,0.5);
+      transition: transform 0.1s ease, box-shadow 0.1s ease, filter 0.1s ease;
+    }
+
+    .btn:hover {
+      transform: translateY(-1px);
+      filter: brightness(1.05);
+      box-shadow: 0 14px 35px rgba(56,189,248,0.55);
+    }
+
+    .btn-ghost {
+      background: transparent;
+      color: var(--muted);
+      border: 1px solid rgba(148,163,184,0.4);
+      box-shadow: none;
+    }
+
+    .btn-ghost:hover {
+      border-color: var(--accent);
+      color: var(--accent-strong);
+      filter: none;
+      box-shadow: 0 6px 18px rgba(15,23,42,0.5);
+    }
+
+    .app-body {
+      margin-top: 10px;
+      border-radius: 18px;
+      background: linear-gradient(135deg, rgba(15,23,42,0.95), rgba(15,23,42,0.98));
+      padding: 14px 14px 16px;
+      border: 1px solid rgba(15,23,42,0.9);
+    }
+
+    /* PAGE SYSTEM */
+
+    .page-container {
+      position: relative;
+      min-height: 460px;
+    }
+
+    .page {
+      display: none;
+    }
+
+    .page.active {
+      display: block;
+    }
+
+    /* MENU PAGE */
+
+    .menu-layout {
+      display: grid;
+      grid-template-columns: minmax(0, 1.15fr) minmax(0, 1.35fr);
+      gap: 18px;
+      align-items: stretch;
+    }   
+
+    .menu-hero {
+    padding: 18px 22px;
+    border-radius: 18px;
+    background: radial-gradient(circle at top, rgba(56,189,248,0.24), transparent 60%), var(--panel-soft);
+    border: 1px solid rgba(148,163,184,0.5);
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    position: relative;
+    min-height: 230px;
+    overflow: visible;
+    }
+
+    /* text column stays on the left */
+    .hero-left {
+    max-width: 60%;
+    }
+
+    .menu-hero h2 {
+      margin: 0;
+      font-size: 20px;
+    }
+
+    .menu-hero p {
+      margin: 0;
+      font-size: 13px;
+      color: var(--muted);
+    }
+
+    /* NEW: make Snoopy a little sticker in the corner */
+    .menu-plane-frame {
+    position: absolute;
+    right: 24px;
+    bottom: 18px;
+    padding: 6px 8px 4px;
+    border-radius: 16px;
+    background: radial-gradient(circle at top,
+                rgba(15,23,42,0.98),
+                rgba(15,23,42,0.95));
+    border: 1px solid rgba(56,189,248,0.25);
+    box-shadow: 0 8px 18px rgba(15,23,42,0.7);
+    transform: rotate(-3deg);
+    }
+
+    [data-theme="light"] .menu-plane-frame {
+    background: #ffffff;
+    box-shadow: 0 10px 20px rgba(15,23,42,0.18);
+    }
+
+    /* smaller gif so it doesn't dominate */
+    .menu-plane {
+    display: block;
+    width: 110px;
+    height: auto;
+    border-radius: 12px;
+    image-rendering: auto;
+    }
+
+    /* softer caption */
+    .menu-plane-caption {
+    margin-top: 3px;
+    text-align: center;
+    font-size: 10px;
+    color: var(--muted);
+    }
+
+    .pill-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 6px;
+    }
+
+    .pill {
+      border-radius: 999px;
+      padding: 4px 9px;
+      font-size: 11px;
+      border: 1px solid rgba(148,163,184,0.38);
+      color: var(--muted);
+    }
+
+    .menu-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    .menu-note {
+      font-size: 11px;
+      color: var(--muted);
+    }
+
+    .menu-grid {
+      padding: 16px 16px 14px;
+      border-radius: 18px;
+      background: radial-gradient(circle at top right, rgba(56,189,248,0.18), transparent 60%), var(--panel-soft);
+      border: 1px solid rgba(148,163,184,0.38);
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .tile {
+      position: relative;
+      border-radius: 14px;
+      background: radial-gradient(circle at top left, rgba(56,189,248,0.16), transparent 70%), rgba(15,23,42,0.95);
+      border: 1px solid rgba(148,163,184,0.4);
+      padding: 10px 11px 11px;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      transition: transform 0.12s ease, box-shadow 0.12s ease, border-color 0.12s ease, background 0.12s ease;
+      overflow: hidden;
+    }
+
+    .tile:hover {
+      transform: translateY(-2px);
+      border-color: var(--accent);
+      box-shadow: 0 14px 32px rgba(15,23,42,0.9);
+      background: radial-gradient(circle at top left, rgba(56,189,248,0.22), transparent 70%), rgba(15,23,42,0.98);
+    }
+
+    .tile-label {
+      font-size: 11px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.09em;
+    }
+
+    .tile-title {
+      font-size: 14px;
+      font-weight: 600;
+    }
+
+    .tile-desc {
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .tile-tag {
+      align-self: flex-start;
+      margin-top: 4px;
+      font-size: 10px;
+      padding: 3px 7px;
+      border-radius: 999px;
+      background: rgba(15,23,42,0.9);
+      border: 1px solid rgba(148,163,184,0.45);
+      color: var(--muted);
+    }
+
+    .tile-corner {
+      position: absolute;
+      right: -12px;
+      bottom: -20px;
+      width: 40px;
+      height: 40px;
+      border-radius: 999px;
+      background: radial-gradient(circle, rgba(56,189,248,0.45), transparent 60%);
+      opacity: 0.5;
+      pointer-events: none;
+    }
+
+    /* WORKSPACE PAGE */
+
+    .workspace-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 10px;
+      padding: 6px 8px 4px;
+      border-radius: 14px;
+      background: linear-gradient(135deg, rgba(15,23,42,0.95), rgba(15,23,42,1));
+      border: 1px solid rgba(15,23,42,0.9);
+    }
+
+    .workspace-header-left {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+
+    .page-chip {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.09em;
+      color: var(--muted);
+    }
+
+    .page-title {
+      font-size: 15px;
+      font-weight: 600;
+    }
+
+    .page-subtitle {
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .workspace-header-right {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .workspace-layout {
+      margin-top: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;       /* full-width stack: tabs row + workspace-main */
+    }
+
+    .workspace-nav-row {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      padding: 2px 2px 0;
+    }
+
+    .breadcrumb {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 11px;
+      color: var(--muted);
+    }
+
+    .crumb-home {
+      cursor: pointer;
+      color: var(--accent-strong);
+    }
+
+    .crumb-home:hover {
+      text-decoration: underline;
+    }
+
+    .crumb-sep {
+      opacity: 0.6;
+    }
+
+    .crumb-current {
+      color: var(--text);
+      opacity: 0.9;
+    }
+
+/* --- Workspace top tab bar --- */
+
+    .workspace-tabs {
+    margin-top: 10px;
+    padding: 6px 4px 10px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    }
+
+    .workspace-tab {
+    border-radius: 999px;
+    border: 1px solid rgba(148,163,184,0.5);
+    padding: 6px 14px;
+    font-size: 12px;
+    background:
+        radial-gradient(circle at top, rgba(15,23,42,0.95), rgba(15,23,42,1));
+    color: var(--muted);
+    cursor: pointer;
+    outline: none;
+    white-space: nowrap;
+    box-shadow: 0 8px 18px rgba(15,23,42,0.75);
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    transition:
+        background 0.15s ease,
+        color 0.15s ease,
+        transform 0.12s ease,
+        box-shadow 0.15s ease,
+        border-color 0.15s ease;
+    }
+
+    .workspace-tab:hover {
+    transform: translateY(-1px);
+    border-color: var(--accent);
+    color: var(--text);
+    box-shadow: 0 12px 26px rgba(15,23,42,0.9);
+    }
+
+    .workspace-tab.active {
+    color: var(--text);
+    border-color: var(--accent);
+    background:
+        linear-gradient(135deg, rgba(56,189,248,0.16), rgba(34,197,94,0.08)),
+        radial-gradient(circle at top left, rgba(56,189,248,0.25), rgba(15,23,42,1));
+    box-shadow: 0 14px 32px rgba(8,47,73,0.95);
+    }
+
+    .workspace-tab:focus-visible {
+    box-shadow:
+        0 0 0 1px rgba(15,23,42,1),
+        0 0 0 2px var(--accent),
+        0 14px 32px rgba(8,47,73,0.95);
+    }
+
+    .nav-btn {
+      border-radius: 999px;
+      padding: 6px 10px;
+      font-size: 11px;
+      border: 1px solid rgba(148,163,184,0.4);
+      background: radial-gradient(circle at top,
+                 rgba(15,23,42,0.9),
+                 rgba(15,23,42,1));
+      color: var(--muted);
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      transition: background 0.12s ease, color 0.12s ease,
+                  border-color 0.12s ease, transform 0.12s ease;
+    }
+
+    .nav-btn:hover {
+      border-color: var(--accent);
+      color: var(--accent-strong);
+      transform: translateY(-1px);
+      box-shadow: 0 8px 20px rgba(15,23,42,0.6);
+    }
+
+    .nav-btn.active {
+      background: linear-gradient(135deg,
+                  rgba(56,189,248,0.18),
+                  rgba(15,23,42,0.98));
+      color: var(--accent-strong);
+      border-color: rgba(56,189,248,0.7);
+    }
+
+    .sidebar {
+      border-radius: 14px;
+      background: radial-gradient(circle at top, rgba(15,23,42,0.9), rgba(15,23,42,1));
+      border: 1px solid rgba(15,23,42,0.95);
+      padding: 8px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .sidebar-title {
+      font-size: 11px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.09em;
+      margin-bottom: 4px;
+      padding: 0 4px;
+    }
+
+    .menu-btn {
+      border-radius: 10px;
+      padding: 8px 8px;
+      border: none;
+      background: transparent;
+      color: var(--muted);
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      cursor: pointer;
+      gap: 3px;
+      font-size: 12px;
+      text-align: left;
+      transition: background 0.12s ease, color 0.12s ease, transform 0.12s ease;
+    }
+
+    .menu-btn span.label {
+      font-weight: 500;
+      color: var(--text);
+    }
+
+    .menu-btn span.desc {
+      font-size: 11px;
+      color: var(--muted);
+    }
+
+    .menu-btn.active {
+      background: linear-gradient(135deg, rgba(56,189,248,0.14), rgba(15,23,42,0.98));
+      color: var(--accent-strong);
+      transform: translateY(-1px);
+    }
+
+    .menu-btn.active span.label {
+      color: var(--accent-strong);
+    }
+
+    .workspace-main {
+      border-radius: 16px;
+      background: var(--panel-strong);
+      border: 1px solid rgba(15,23,42,0.95);
+      padding: 10px 12px 12px;
+      display: grid;
+      grid-template-columns: minmax(0, 1.1fr) minmax(0, 1.2fr);
+      gap: 12px;
+    }
+
+    .forms-pane {
+      border-radius: 12px;
+      background: radial-gradient(circle at top left, rgba(15,23,42,0.95), rgba(15,23,42,1));
+      border: 1px solid rgba(15,23,42,0.9);
+      padding: 10px 10px 12px;
+      overflow-y: auto;
+      max-height: 380px;
+    }
+
+    .output-pane {
+      border-radius: 12px;
+      background: radial-gradient(circle at top right, rgba(15,23,42,0.95), rgba(15,23,42,1));
+      border: 1px solid rgba(15,23,42,0.92);
+      padding: 10px 10px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      max-height: 380px;
+      overflow: hidden;
+    }
+
+    .output-header {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .output-title {
+      font-size: 14px;
+      font-weight: 600;
+    }
+
+    .output-subtitle {
+      font-size: 11px;
+      color: var(--muted);
+    }
+
+    .output-body {
+      margin-top: 6px;
+      border-radius: 10px;
+      padding: 8px 8px;
+      background: rgba(15,23,42,0.98);
+      border: 1px dashed rgba(148,163,184,0.4);
+      font-size: 12px;
+      overflow: auto;
+      flex: 1;
+    }
+
+    .output-body.placeholder {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--muted);
+      font-size: 12px;
+      text-align: center;
+    }
+
+    .panel {
+      display: none;
+    }
+
+    .panel.active {
+      display: block;
+    }
+
+    .panel-header {
+      margin-bottom: 6px;
+    }
+
+    .panel-header h3 {
+      margin: 0;
+      font-size: 14px;
+    }
+
+    .panel-header p {
+      margin: 2px 0 0;
+      font-size: 11px;
+      color: var(--muted);
+    }
+
+    .field-group {
+      margin-top: 8px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+
+    .field label {
+      font-size: 11px;
+      color: var(--muted);
+    }
+
+    .field input {
+      border-radius: 999px;
+      border: 1px solid rgba(51,65,85,0.9);
+      padding: 7px 10px;
+      font-size: 12px;
+      background: rgba(15,23,42,0.98);
+      color: var(--text);
+      outline: none;
+      transition: border-color 0.12s ease, box-shadow 0.12s ease, background 0.12s ease;
+    }
+
+    .field input:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 1px rgba(56,189,248,0.5);
+      background: rgba(15,23,42,1);
+    }
+
+    .input-row {
+      display: flex;
+      gap: 8px;
+    }
+
+    .input-row .field {
+      flex: 1;
+    }
+
+    .panel-actions {
+      margin-top: 8px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .btn-sm {
+      padding: 6px 12px;
+      font-size: 12px;
+    }
+
+    .hint-row {
+      margin-top: 6px;
+      font-size: 11px;
+      color: var(--muted);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 11.5px;
+    }
+
+    th, td {
+      padding: 5px 6px;
+      border-bottom: 1px solid rgba(30,41,59,0.85);
+      text-align: left;
+      white-space: nowrap;
+    }
+
+    th {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      color: var(--muted);
+      position: sticky;
+      top: 0;
+      background: rgba(15,23,42,0.98);
+      cursor: pointer;
+    }
+
+    td {
+      color: var(--text);
+    }
+
+    .toast-container {
+      position: fixed;
+      right: 18px;
+      bottom: 18px;
+      z-index: 40;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .toast {
+      min-width: 220px;
+      max-width: 320px;
+      border-radius: 12px;
+      padding: 8px 10px;
+      font-size: 12px;
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      align-items: center;
+      background: rgba(15,23,42,0.98);
+      border: 1px solid rgba(148,163,184,0.6);
+      box-shadow: 0 10px 25px rgba(15,23,42,0.8);
+      opacity: 0;
+      transform: translateY(6px);
+      transition: opacity 0.2s ease, transform 0.2s ease;
+    }
+
+    .toast.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .toast-success {
+      border-color: rgba(34,197,94,0.6);
+    }
+
+    .toast-error {
+      border-color: rgba(248,113,113,0.8);
+    }
+
+    .toast-message {
+      flex: 1;
+    }
+
+    .toast-close {
+      border: none;
+      background: transparent;
+      color: var(--muted);
+      cursor: pointer;
+      font-size: 14px;
+      padding: 0 0 0 4px;
+    }
+
+    #loadingOverlay {
+      position: fixed;
+      inset: 0;
+      background: radial-gradient(circle at top, rgba(15,23,42,0.85), rgba(15,23,42,0.98));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 30;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.15s ease;
+    }
+
+    #loadingOverlay.show {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .loader {
+      width: 42px;
+      height: 42px;
+      border-radius: 999px;
+      border: 3px solid rgba(148,163,184,0.35);
+      border-top-color: var(--accent-strong);
+      animation: spin 0.7s linear infinite;
+    }
+
+    .loader.show {
+      display: block;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    /* Modal */
+
+    .modal {
+      position: fixed;
+      inset: 0;
+      background: rgba(15,23,42,0.8);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 50;
+    }
+
+    .modal.show {
+      display: flex;
+    }
+
+    .modal-dialog {
+      width: 100%;
+      max-width: 360px;
+      border-radius: 18px;
+      background: var(--panel-strong);
+      border: 1px solid rgba(148,163,184,0.55);
+      box-shadow: 0 18px 45px rgba(15,23,42,0.95);
+      padding: 14px 14px 12px;
+    }
+
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      align-items: center;
+      margin-bottom: 4px;
+    }
+
+    .modal-title {
+      font-size: 14px;
+      font-weight: 600;
+    }
+
+    .modal-close {
+      border: none;
+      background: transparent;
+      cursor: pointer;
+      font-size: 16px;
+      color: var(--muted);
+    }
+
+    .modal-body {
+      font-size: 12px;
+      margin-top: 4px;
+    }
+
+    .info-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+      gap: 6px 10px;
+      font-size: 12px;
+    }
+
+    .info-item {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .info-label {
+      font-size: 11px;
+      color: var(--muted);
+    }
+
+    .info-value {
+      font-size: 12px;
+    }
+
+    .status-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 7px;
+    border-radius: 999px;
+    font-size: 11px;
+    border: 1px solid rgba(148,163,184,0.55);
+    }
+
+    .status-active {
+    background: rgba(34,197,94,0.14);
+    border-color: rgba(34,197,94,0.8);
+    color: #4ade80;
+    }
+
+    .status-inactive {
+    background: rgba(148,163,184,0.12);
+    border-color: rgba(148,163,184,0.8);
+    color: var(--muted);
+    }
+
+    .summary-card::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at top left,
+                rgba(56,189,248,0.22),
+                transparent 55%);
+    opacity: 0.9;
+    pointer-events: none;
+    }
+
+    /* --- SUMMARY CARD UPGRADE --- */
+
+    .summary-card {
+    margin-top: 14px;
+    padding: 14px 16px;
+    border-radius: 14px;
+
+    /* softer but brighter glow */
+    background: linear-gradient(
+        135deg,
+        rgba(56,189,248,0.18),
+        rgba(15,23,42,0.95)
+    );
+
+    border: 1px solid rgba(56,189,248,0.55);
+    box-shadow: 0 14px 35px rgba(8,47,73,0.75);
+
+    /* Give the text more room */
+    width: 100%;
+    max-width: 680px;
+    }
+
+    .summary-title {
+    font-size: 12px;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    color: var(--accent-strong);
+    margin-bottom: 6px;
+    }
+
+    .summary-body {
+    font-size: 13px;
+    line-height: 1.45;
+    color: var(--text);
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    }
+
+    /* Make emojis bigger and aligned */
+    .summary-body div {
+    display: flex;
+    gap: 6px;
+    align-items: flex-start;
+    }
+
+    .summary-body div::before {
+    font-size: 14px;
+    }
+
+    .ripple {
+      position: absolute;
+      border-radius: 50%;
+      transform: scale(0);
+      animation: ripple 0.45s linear;
+      background: rgba(248,250,252,0.25);
+      pointer-events: none;
+    }
+
+    .sidebar.hidden {
+      display: none !important;
+    }
+
+    @keyframes ripple {
+      to {
+        transform: scale(4);
+        opacity: 0;
+      }
+    }
+
+    @media (max-width: 960px) {
+      .menu-layout {
+        grid-template-columns: minmax(0, 1fr);
+      }
+      .workspace-layout {
+        grid-template-columns: minmax(0, 1fr);
+      }
+      .workspace-main {
+        grid-template-columns: minmax(0, 1fr);
+      }
+      .forms-pane, .output-pane {
+        max-height: none;
+      }
+      .app-shell {
+        padding: 14px 12px 16px;
+      }
+    }
+  </style>
 </head>
 <body>
 <canvas id="bgCanvas"></canvas>
 
-<div class="app">
-    <!-- HEADER -->
+<div id="app">
+  <div class="app-shell">
     <header class="app-header">
-        <div class="app-title-wrap">
-            <div class="app-title">✈️ Air Travel Database</div>
+      <div class="app-title">
+        <div class="logo-circle">✈️</div>
+        <div class="app-title-main">
+          <h1>Air Travel Database</h1>
+          <p class="subtitle">CIS 22C Honors · C++ Crow Web App</p>
+          <div class="chip-row">
+            <div class="chip">Backed by OpenFlights airline / airport / route data</div>
+            <div class="badge-cta">Use the menu to choose a report</div>
+          </div>
         </div>
-        <div class="header-right">
-            <div id="headerIdText" class="id-chip"></div>
-            <button class="icon-btn" onclick="toggleTheme()" title="Toggle light/dark">
-                <span id="themeIcon">🌙</span>
-            </button>
-            <button class="icon-btn" onclick="loadId()" title="Show my ID">
-                <span>👤</span>
-            </button>
+      </div>
+      <div class="header-right">
+        <button class="icon-btn" onclick="toggleTheme()">
+          <span id="themeIcon">🌙</span>
+        </button>
+        <button class="icon-btn" onclick="loadId()">
+          <span>👤</span><span>ID</span>
+        </button>
+        <div class="id-chip">
+          <span id="headerIdText"><strong>Student ID</strong> · click “ID” to load from backend</span>
         </div>
+      </div>
     </header>
 
     <div class="app-body">
-        <!-- SIDEBAR -->
-        <nav class="sidebar">
-            <div class="sidebar-title">Menu</div>
+      <div class="page-container">
+        <!-- MENU PAGE -->
+        <section id="page-menu" class="page active">
+          <div class="menu-layout">
+            <div class="menu-hero">
+                <div class="hero-left">
+                    <h2>Welcome to the Air Travel Dashboard</h2>
+                    <p>This app is powered by a custom C++ backend and Crow on port 8080. Choose an action to explore airlines, airports, routes, or edit data in-memory.</p>
 
-            <button class="menu-btn active" data-panel="airline">
-                Lookup Airline
-                <span>Find airline by IATA code</span>
-            </button>
+                    <div class="tag-row">
+                    <span class="tag">C++ • Crow • JSON</span>
+                    <span class="tag">Hash tables • Vectors</span>
+                    <span class="tag">Airlines • Airports • Routes</span>
+                    </div>
 
-            <button class="menu-btn" data-panel="airport">
-                Lookup Airport
-                <span>Find airport by IATA code</span>
-            </button>
+                    <div class="button-row">
+                    <button class="primary" onclick="gotoSection('airline-lookup')">Start with Airline Lookup</button>
+                    <button class="primary-outline" onclick="gotoSection('onehop')">Try One-Hop Route Finder</button>
+                    </div>
 
-            <button class="menu-btn" data-panel="airline-routes">
-                Airline Route Report
-                <span>Airports served by an airline</span>
-            </button>
-
-            <button class="menu-btn" data-panel="airport-routes">
-                Airport Route Report
-                <span>Airlines serving an airport</span>
-            </button>
-
-            <button class="menu-btn" data-panel="one-hop">
-                One-Hop Routes
-                <span>Find S → X → D (0 stops)</span>
-            </button>
-
-            <button class="menu-btn" data-panel="all-airlines">
-                All Airlines
-                <span>Sorted by IATA</span>
-            </button>
-
-            <button class="menu-btn" data-panel="all-airports">
-                All Airports
-                <span>Sorted by IATA</span>
-            </button>
-
-            <button class="menu-btn" data-panel="admin">
-                Admin / Data Editor
-                <span>Modify in-memory data</span>
-            </button>
-        </nav>
-
-        <!-- MAIN -->
-        <main class="main">
-            <!-- PANELS -->
-            <section id="panel-airline" class="panel active">
-                <div class="panel-title">Lookup Airline</div>
-                <div class="panel-desc">
-                    Enter a 2–3 letter IATA airline code (for example: <code>AA</code>, <code>UA</code>, <code>DL</code>).
-                </div>
-                <div class="form-row">
-                    <label for="airlineInput">Airline IATA:</label>
-                    <input id="airlineInput" class="input iata-input" maxlength="3" list="airlineList" placeholder="AA">
-                    <button class="btn" onclick="lookupAirline()">Search</button>
-                </div>
-            </section>
-
-            <section id="panel-airport" class="panel">
-                <div class="panel-title">Lookup Airport</div>
-                <div class="panel-desc">
-                    Enter a 3-letter airport IATA code (for example: <code>SFO</code>, <code>LAX</code>, <code>JFK</code>).
-                </div>
-                <div class="form-row">
-                    <label for="airportInput">Airport IATA:</label>
-                    <input id="airportInput" class="input iata-input" maxlength="3" list="airportList" placeholder="SFO">
-                    <button class="btn" onclick="lookupAirport()">Search</button>
-                </div>
-            </section>
-
-            <section id="panel-airline-routes" class="panel">
-                <div class="panel-title">Airline Route Report</div>
-                <div class="panel-desc">
-                    Shows all airports served by a given airline, with a count of routes to/from each airport.
-                </div>
-                <div class="form-row">
-                    <label for="airlineRouteInput">Airline IATA:</label>
-                    <input id="airlineRouteInput" class="input iata-input" maxlength="3" list="airlineList" placeholder="AA">
-                    <button class="btn" onclick="airlineRoutes()">Generate</button>
-                </div>
-            </section>
-
-            <section id="panel-airport-routes" class="panel">
-                <div class="panel-title">Airport Route Report</div>
-                <div class="panel-desc">
-                    Shows all airlines that serve a given airport, with a count of routes involving that airport.
-                </div>
-                <div class="form-row">
-                    <label for="airportRouteInput">Airport IATA:</label>
-                    <input id="airportRouteInput" class="input iata-input" maxlength="3" list="airportList" placeholder="SFO">
-                    <button class="btn" onclick="airportRoutes()">Generate</button>
-                </div>
-            </section>
-
-            <section id="panel-one-hop" class="panel">
-                <div class="panel-title">One-Hop Route Finder</div>
-                <div class="panel-desc">
-                    Find all <strong>one-hop</strong> routes from a source airport to a destination airport:
-                    S → X → D, where each leg has 0 stops. Results are ordered by total air miles.
-                </div>
-                <div class="form-row">
-                    <label for="oneHopSrcInput">Source IATA:</label>
-                    <input id="oneHopSrcInput" class="input iata-input" maxlength="3" list="airportList" placeholder="SFO">
-                    <label for="oneHopDstInput">Destination IATA:</label>
-                    <input id="oneHopDstInput" class="input iata-input" maxlength="3" list="airportList" placeholder="JFK">
-                    <button class="btn" onclick="oneHop()">Find Routes</button>
-                </div>
-            </section>
-
-            <section id="panel-all-airlines" class="panel">
-                <div class="panel-title">All Airlines</div>
-                <div class="panel-desc">
-                    Returns the list of all airlines sorted by IATA code.
-                </div>
-                <button class="btn" onclick="allAirlines()">Load Airlines</button>
-            </section>
-
-            <section id="panel-all-airports" class="panel">
-                <div class="panel-title">All Airports</div>
-                <div class="panel-desc">
-                    Returns the list of all airports sorted by IATA code.
-                </div>
-                <button class="btn" onclick="allAirports()">Load Airports</button>
-            </section>
-
-            <!-- ADMIN PANEL -->
-            <section id="panel-admin" class="panel">
-                <div class="panel-title">Admin / Data Editor</div>
-                <div class="panel-desc">
-                    Modify the in-memory contents of airlines, airports, and routes using the C++ update endpoints.
-                    Changes are not written back to the <code>.dat</code> files.
+                    <p class="tip">Tip: Use the light/dark toggle in the top-right to switch themes.</p>
                 </div>
 
-                <!-- Airline section -->
-                <div class="admin-section-title">Airline – Add</div>
-                <div class="admin-note">
-                    Required: <code>id</code>, <code>iata</code>, <code>name</code>. Country and Active are optional.
+                <div class="menu-plane-frame">
+                    <img src="/static/snoopy-plane.gif" class="menu-plane" alt="Flying plane">
+                    <div class="menu-plane-caption">Flying into your C++ backend ✈️</div>
                 </div>
-                <div class="form-row">
-                    <label for="adminAirlineAddId">ID:</label>
-                    <input id="adminAirlineAddId" class="input" type="number" placeholder="12345">
-                    <label for="adminAirlineAddIata">IATA:</label>
-                    <input id="adminAirlineAddIata" class="input iata-input" maxlength="3" placeholder="ZZ">
-                    <label for="adminAirlineAddName">Name:</label>
-                    <input id="adminAirlineAddName" class="input" placeholder="Test Airline">
+            </div>
+
+            <div class="menu-grid">
+              <div class="tile" onclick="openAction('airline')">
+                <div class="tile-label">Lookup</div>
+                <div class="tile-title">Airline by IATA</div>
+                <div class="tile-desc">Fetch airline metadata using a 2-letter IATA code.</div>
+                <div class="tile-tag">/airline?iata=XX</div>
+                <div class="tile-corner"></div>
+              </div>
+              <div class="tile" onclick="openAction('airport')">
+                <div class="tile-label">Lookup</div>
+                <div class="tile-title">Airport by IATA</div>
+                <div class="tile-desc">Search airport location, city, and coordinates.</div>
+                <div class="tile-tag">/airport?iata=XXX</div>
+                <div class="tile-corner"></div>
+              </div>
+              <div class="tile" onclick="openAction('one-hop')">
+                <div class="tile-label">Planner</div>
+                <div class="tile-title">One-Hop Route Finder</div>
+                <div class="tile-desc">Find S → X → D routes where each leg has 0 stops.</div>
+                <div class="tile-tag">shortest 2-leg routes</div>
+                <div class="tile-corner"></div>
+              </div>
+              <div class="tile" onclick="openAction('airline-routes')">
+                <div class="tile-label">Report</div>
+                <div class="tile-title">Airline Route Report</div>
+                <div class="tile-desc">List airports served by a given airline.</div>
+                <div class="tile-tag">/airline-routes</div>
+                <div class="tile-corner"></div>
+              </div>
+              <div class="tile" onclick="openAction('airport-routes')">
+                <div class="tile-label">Report</div>
+                <div class="tile-title">Airport Route Report</div>
+                <div class="tile-desc">List airlines that serve a given airport.</div>
+                <div class="tile-tag">/airport-routes</div>
+                <div class="tile-corner"></div>
+              </div>
+              <div class="tile" onclick="openAction('admin')">
+                <div class="tile-label">Admin</div>
+                <div class="tile-title">In-Memory Data Editor</div>
+                <div class="tile-desc">Add or update airlines, airports, and routes.</div>
+                <div class="tile-tag">honors feature</div>
+                <div class="tile-corner"></div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- WORKSPACE PAGE -->
+        <section id="page-workspace" class="page">
+            <div class="workspace-header">
+                <div class="workspace-header-left">
+                <div class="page-chip" id="pageChipText">Lookup Airline</div>
+                <div class="page-title">Action Workspace</div>
+                <div class="page-subtitle">
+                    Use the tabs above to switch actions. Results appear on the right.
                 </div>
-                <div class="form-row">
-                    <label for="adminAirlineAddCountry">Country:</label>
-                    <input id="adminAirlineAddCountry" class="input" placeholder="Nowhere">
-                    <label>
-                        <input id="adminAirlineAddActive" type="checkbox" checked>
-                        Active
-                    </label>
-                    <button class="btn" onclick="adminAirlineAdd()">Add Airline</button>
+                </div>
+                <div class="workspace-header-right">
+                <button class="btn btn-sm btn-ghost" onclick="goBackToMenu()">← Back to Menu</button>
+                </div>
+            </div>
+
+            <div class="workspace-layout">
+                <!-- breadcrumb + top tabs -->
+                <div class="workspace-nav-row">
+                <div class="breadcrumb">
+                    <span class="crumb-home" onclick="goBackToMenu()">Menu</span>
+                    <span class="crumb-sep">›</span>
+                    <span class="crumb-current" id="breadcrumbCurrent">Lookup Airline</span>
                 </div>
 
-                <div class="admin-divider"></div>
-
-                <div class="admin-section-title">Airline – Update</div>
-                <div class="admin-note">
-                    Required: <code>id</code>. Any other field you fill in will be updated.
+                <div class="workspace-tabs">
+                    <button class="nav-btn" data-panel="airline">Lookup Airline</button>
+                    <button class="nav-btn" data-panel="airport">Lookup Airport</button>
+                    <button class="nav-btn" data-panel="airline-routes">Airline Route Report</button>
+                    <button class="nav-btn" data-panel="airport-routes">Airport Route Report</button>
+                    <button class="nav-btn" data-panel="one-hop">One-Hop Routes</button>
+                    <button class="nav-btn" data-panel="all-airlines">All Airlines</button>
+                    <button class="nav-btn" data-panel="all-airports">All Airports</button>
+                    <button class="nav-btn" data-panel="admin">Admin / Data Editor</button>
                 </div>
-                <div class="form-row">
-                    <label for="adminAirlineUpdateId">ID:</label>
-                    <input id="adminAirlineUpdateId" class="input" type="number" placeholder="12345">
-                    <label for="adminAirlineUpdateIata">IATA:</label>
-                    <input id="adminAirlineUpdateIata" class="input iata-input" maxlength="3" placeholder="ZZ">
-                    <label for="adminAirlineUpdateName">Name:</label>
-                    <input id="adminAirlineUpdateName" class="input" placeholder="New Name">
-                </div>
-                <div class="form-row">
-                    <label for="adminAirlineUpdateCountry">Country:</label>
-                    <input id="adminAirlineUpdateCountry" class="input" placeholder="New Country">
-                    <label>
-                        <input id="adminAirlineUpdateActive" type="checkbox">
-                        Active (tick to set true)
-                    </label>
-                    <button class="btn" onclick="adminAirlineUpdate()">Update Airline</button>
                 </div>
 
-                <div class="admin-divider"></div>
+                <!-- main workspace (full width) -->
+                <div class="workspace-main">
+                <!-- forms -->
+                <div class="forms-pane">
+                    <!-- Airline lookup -->
+                    <section id="panel-airline" class="panel active">
+                    <div class="panel-header">
+                        <h3>Lookup Airline</h3>
+                        <p>Enter a 2-letter airline IATA code (e.g. AA, DL, UA).</p>
+                    </div>
+                    <div class="field-group">
+                        <div class="field">
+                        <label for="airlineInput">Airline IATA</label>
+                        <input id="airlineInput" class="iata-input" list="airlineList" placeholder="AA, DL, UA…" />
+                        </div>
+                    </div>
+                    <div class="panel-actions">
+                        <button class="btn btn-sm" onclick="lookupAirline()">Search</button>
+                        <button class="btn btn-sm btn-ghost" onclick="clearOutput()">Clear Result</button>
+                    </div>
+                    <div class="hint-row">
+                        Hint: start typing to use autocomplete loaded from <code>/airlines-by-iata</code>.
+                    </div>
+                    </section>
 
-                <!-- Airport section -->
-                <div class="admin-section-title">Airport – Add</div>
-                <div class="admin-note">
-                    Required: <code>id</code>, <code>iata</code>, <code>name</code>. Others are optional.
-                </div>
-                <div class="form-row">
-                    <label for="adminAirportAddId">ID:</label>
-                    <input id="adminAirportAddId" class="input" type="number" placeholder="9999">
-                    <label for="adminAirportAddIata">IATA:</label>
-                    <input id="adminAirportAddIata" class="input iata-input" maxlength="3" placeholder="ZZZ">
-                    <label for="adminAirportAddName">Name:</label>
-                    <input id="adminAirportAddName" class="input" placeholder="Test Airport">
-                </div>
-                <div class="form-row">
-                    <label for="adminAirportAddCity">City:</label>
-                    <input id="adminAirportAddCity" class="input" placeholder="Test City">
-                    <label for="adminAirportAddCountry">Country:</label>
-                    <input id="adminAirportAddCountry" class="input" placeholder="TC">
-                </div>
-                <div class="form-row">
-                    <label for="adminAirportAddLat">Lat:</label>
-                    <input id="adminAirportAddLat" class="input" type="number" step="0.0001" placeholder="37.0">
-                    <label for="adminAirportAddLon">Lon:</label>
-                    <input id="adminAirportAddLon" class="input" type="number" step="0.0001" placeholder="-122.0">
-                    <button class="btn" onclick="adminAirportAdd()">Add Airport</button>
+                    <!-- Airport lookup -->
+                    <section id="panel-airport" class="panel">
+                    <div class="panel-header">
+                        <h3>Lookup Airport</h3>
+                        <p>Enter a 3-letter airport IATA code (e.g. SFO, LAX, JFK).</p>
+                    </div>
+                    <div class="field-group">
+                        <div class="field">
+                        <label for="airportInput">Airport IATA</label>
+                        <input id="airportInput" class="iata-input" list="airportList" placeholder="SFO, LAX, JFK…" />
+                        </div>
+                    </div>
+                    <div class="panel-actions">
+                        <button class="btn btn-sm" onclick="lookupAirport()">Search</button>
+                        <button class="btn btn-sm btn-ghost" onclick="clearOutput()">Clear Result</button>
+                    </div>
+                    <div class="hint-row">
+                        Try: SFO (San Francisco), LAX (Los Angeles), JFK (New York).
+                    </div>
+                    </section>
+
+                    <!-- Airline route report -->
+                    <section id="panel-airline-routes" class="panel">
+                    <div class="panel-header">
+                        <h3>Airline Route Report</h3>
+                        <p>List all airports served by a particular airline.</p>
+                    </div>
+                    <div class="field-group">
+                        <div class="field">
+                        <label for="airlineRouteInput">Airline IATA</label>
+                        <input id="airlineRouteInput" class="iata-input" list="airlineList" placeholder="AA, DL, UA…" />
+                        </div>
+                    </div>
+                    <div class="panel-actions">
+                        <button class="btn btn-sm" onclick="airlineRoutes()">Run Report</button>
+                        <button class="btn btn-sm btn-ghost" onclick="clearOutput()">Clear Result</button>
+                    </div>
+                    </section>
+
+                    <!-- Airport route report -->
+                    <section id="panel-airport-routes" class="panel">
+                    <div class="panel-header">
+                        <h3>Airport Route Report</h3>
+                        <p>List all airlines that serve a particular airport.</p>
+                    </div>
+                    <div class="field-group">
+                        <div class="field">
+                        <label for="airportRouteInput">Airport IATA</label>
+                        <input id="airportRouteInput" class="iata-input" list="airportList" placeholder="SFO, LAX, JFK…" />
+                        </div>
+                    </div>
+                    <div class="panel-actions">
+                        <button class="btn btn-sm" onclick="airportRoutes()">Run Report</button>
+                        <button class="btn btn-sm btn-ghost" onclick="clearOutput()">Clear Result</button>
+                    </div>
+                    </section>
+
+                    <!-- One-hop -->
+                    <section id="panel-one-hop" class="panel">
+                    <div class="panel-header">
+                        <h3>One-Hop Route Finder</h3>
+                        <p>Find all one-hop routes S → X → D, where each leg has 0 stops.</p>
+                    </div>
+                    <div class="field-group">
+                        <div class="input-row">
+                        <div class="field">
+                            <label for="oneHopSrcInput">Source IATA</label>
+                            <input id="oneHopSrcInput" class="iata-input" list="airportList" placeholder="SFO" />
+                        </div>
+                        <div class="field">
+                            <label for="oneHopDstInput">Destination IATA</label>
+                            <input id="oneHopDstInput" class="iata-input" list="airportList" placeholder="JFK" />
+                        </div>
+                        </div>
+                    </div>
+                    <div class="panel-actions">
+                        <button class="btn btn-sm" onclick="oneHop()">Find Routes</button>
+                        <button class="btn btn-sm btn-ghost" onclick="clearOutput()">Clear Result</button>
+                        <button class="btn btn-sm btn-ghost" onclick="prefillOneHop('SFO','JFK')">Example: SFO → JFK</button>
+                        <button class="btn btn-sm btn-ghost" onclick="prefillOneHop('MIA','BOS')">Example: MIA → BOS</button>
+                    </div>
+                    </section>
+
+                    <!-- All airlines -->
+                    <section id="panel-all-airlines" class="panel">
+                    <div class="panel-header">
+                        <h3>All Airlines</h3>
+                        <p>Show all airlines currently loaded, sorted by IATA.</p>
+                    </div>
+                    <div class="panel-actions">
+                        <button class="btn btn-sm" onclick="allAirlines()">Load Airlines</button>
+                        <button class="btn btn-sm btn-ghost" onclick="clearOutput()">Clear Result</button>
+                    </div>
+                    </section>
+
+                    <!-- All airports -->
+                    <section id="panel-all-airports" class="panel">
+                    <div class="panel-header">
+                        <h3>All Airports</h3>
+                        <p>Show all airports currently loaded, sorted by IATA.</p>
+                    </div>
+                    <div class="panel-actions">
+                        <button class="btn btn-sm" onclick="allAirports()">Load Airports</button>
+                        <button class="btn btn-sm btn-ghost" onclick="clearOutput()">Clear Result</button>
+                    </div>
+                    </section>
+
+                    <!-- Admin -->
+                    <section id="panel-admin" class="panel">
+                    <div class="panel-header">
+                        <h3>Admin / Data Editor</h3>
+                        <p>Modify airlines, airports, and routes in memory (no file write-back).</p>
+                    </div>
+
+                    <div class="field-group">
+                        <strong style="font-size:12px;">Airline – Add</strong>
+                        <div class="input-row">
+                        <div class="field">
+                            <label for="adminAirlineAddId">ID</label>
+                            <input id="adminAirlineAddId" type="number" />
+                        </div>
+                        <div class="field">
+                            <label for="adminAirlineAddIata">IATA</label>
+                            <input id="adminAirlineAddIata" class="iata-input" />
+                        </div>
+                        </div>
+                        <div class="field">
+                        <label for="adminAirlineAddName">Name</label>
+                        <input id="adminAirlineAddName" />
+                        </div>
+                        <div class="field">
+                        <label for="adminAirlineAddCountry">Country</label>
+                        <input id="adminAirlineAddCountry" />
+                        </div>
+                        <div class="field">
+                        <label><input type="checkbox" id="adminAirlineAddActive" /> Active</label>
+                        </div>
+                        <div class="panel-actions">
+                        <button class="btn btn-sm" onclick="adminAirlineAdd()">Add Airline</button>
+                        </div>
+                    </div>
+
+                    <div class="field-group">
+                        <strong style="font-size:12px;">Airline – Update</strong>
+                        <div class="field">
+                        <label for="adminAirlineUpdateId">Existing ID (required)</label>
+                        <input id="adminAirlineUpdateId" type="number" />
+                        </div>
+                        <div class="input-row">
+                        <div class="field">
+                            <label for="adminAirlineUpdateIata">New IATA (optional)</label>
+                            <input id="adminAirlineUpdateIata" class="iata-input" />
+                        </div>
+                        <div class="field">
+                            <label for="adminAirlineUpdateName">New Name (optional)</label>
+                            <input id="adminAirlineUpdateName" />
+                        </div>
+                        </div>
+                        <div class="field">
+                        <label for="adminAirlineUpdateCountry">New Country (optional)</label>
+                        <input id="adminAirlineUpdateCountry" />
+                        </div>
+                        <div class="field">
+                        <label><input type="checkbox" id="adminAirlineUpdateActive" /> Set Active = true</label>
+                        </div>
+                        <div class="panel-actions">
+                        <button class="btn btn-sm" onclick="adminAirlineUpdate()">Update Airline</button>
+                        </div>
+                    </div>
+
+                    <div class="field-group">
+                        <strong style="font-size:12px;">Airport – Add</strong>
+                        <div class="input-row">
+                        <div class="field">
+                            <label for="adminAirportAddId">ID</label>
+                            <input id="adminAirportAddId" type="number" />
+                        </div>
+                        <div class="field">
+                            <label for="adminAirportAddIata">IATA</label>
+                            <input id="adminAirportAddIata" class="iata-input" />
+                        </div>
+                        </div>
+                        <div class="field">
+                        <label for="adminAirportAddName">Name</label>
+                        <input id="adminAirportAddName" />
+                        </div>
+                        <div class="input-row">
+                        <div class="field">
+                            <label for="adminAirportAddCity">City</label>
+                            <input id="adminAirportAddCity" />
+                        </div>
+                        <div class="field">
+                            <label for="adminAirportAddCountry">Country</label>
+                            <input id="adminAirportAddCountry" />
+                        </div>
+                        </div>
+                        <div class="input-row">
+                        <div class="field">
+                            <label for="adminAirportAddLat">Latitude</label>
+                            <input id="adminAirportAddLat" type="number" step="0.000001" />
+                        </div>
+                        <div class="field">
+                            <label for="adminAirportAddLon">Longitude</label>
+                            <input id="adminAirportAddLon" type="number" step="0.000001" />
+                        </div>
+                        </div>
+                        <div class="panel-actions">
+                        <button class="btn btn-sm" onclick="adminAirportAdd()">Add Airport</button>
+                        </div>
+                    </div>
+
+                    <div class="field-group">
+                        <strong style="font-size:12px;">Airport – Update</strong>
+                        <div class="field">
+                        <label for="adminAirportUpdateId">Existing ID (required)</label>
+                        <input id="adminAirportUpdateId" type="number" />
+                        </div>
+                        <div class="input-row">
+                        <div class="field">
+                            <label for="adminAirportUpdateIata">New IATA</label>
+                            <input id="adminAirportUpdateIata" class="iata-input" />
+                        </div>
+                        <div class="field">
+                            <label for="adminAirportUpdateName">New Name</label>
+                            <input id="adminAirportUpdateName" />
+                        </div>
+                        </div>
+                        <div class="input-row">
+                        <div class="field">
+                            <label for="adminAirportUpdateCity">New City</label>
+                            <input id="adminAirportUpdateCity" />
+                        </div>
+                        <div class="field">
+                            <label for="adminAirportUpdateCountry">New Country</label>
+                            <input id="adminAirportUpdateCountry" />
+                        </div>
+                        </div>
+                        <div class="input-row">
+                        <div class="field">
+                            <label for="adminAirportUpdateLat">New Latitude</label>
+                            <input id="adminAirportUpdateLat" type="number" step="0.000001" />
+                        </div>
+                        <div class="field">
+                            <label for="adminAirportUpdateLon">New Longitude</label>
+                            <input id="adminAirportUpdateLon" type="number" step="0.000001" />
+                        </div>
+                        </div>
+                        <div class="panel-actions">
+                        <button class="btn btn-sm" onclick="adminAirportUpdate()">Update Airport</button>
+                        </div>
+                    </div>
+
+                    <div class="field-group">
+                        <strong style="font-size:12px;">Route – Add</strong>
+                        <div class="input-row">
+                        <div class="field">
+                            <label for="adminRouteAddAirlineId">Airline ID</label>
+                            <input id="adminRouteAddAirlineId" type="number" />
+                        </div>
+                        <div class="field">
+                            <label for="adminRouteAddSrcId">Source Airport ID</label>
+                            <input id="adminRouteAddSrcId" type="number" />
+                        </div>
+                        </div>
+                        <div class="input-row">
+                        <div class="field">
+                            <label for="adminRouteAddDstId">Destination Airport ID</label>
+                            <input id="adminRouteAddDstId" type="number" />
+                        </div>
+                        <div class="field">
+                            <label for="adminRouteAddStops">Stops</label>
+                            <input id="adminRouteAddStops" type="number" min="0" />
+                        </div>
+                        </div>
+                        <div class="panel-actions">
+                        <button class="btn btn-sm" onclick="adminRouteAdd()">Add Route</button>
+                        </div>
+                    </div>
+                    </section>
                 </div>
 
-                <div class="admin-divider"></div>
-
-                <div class="admin-section-title">Airport – Update</div>
-                <div class="admin-note">
-                    Required: <code>id</code>. Any other field you fill in will be updated.
-                </div>
-                <div class="form-row">
-                    <label for="adminAirportUpdateId">ID:</label>
-                    <input id="adminAirportUpdateId" class="input" type="number" placeholder="9999">
-                    <label for="adminAirportUpdateIata">IATA:</label>
-                    <input id="adminAirportUpdateIata" class="input iata-input" maxlength="3" placeholder="ZZZ">
-                    <label for="adminAirportUpdateName">Name:</label>
-                    <input id="adminAirportUpdateName" class="input" placeholder="New Airport Name">
-                </div>
-                <div class="form-row">
-                    <label for="adminAirportUpdateCity">City:</label>
-                    <input id="adminAirportUpdateCity" class="input" placeholder="New City">
-                    <label for="adminAirportUpdateCountry">Country:</label>
-                    <input id="adminAirportUpdateCountry" class="input" placeholder="New Country">
-                </div>
-                <div class="form-row">
-                    <label for="adminAirportUpdateLat">Lat:</label>
-                    <input id="adminAirportUpdateLat" class="input" type="number" step="0.0001" placeholder="">
-                    <label for="adminAirportUpdateLon">Lon:</label>
-                    <input id="adminAirportUpdateLon" class="input" type="number" step="0.0001" placeholder="">
-                    <button class="btn" onclick="adminAirportUpdate()">Update Airport</button>
-                </div>
-
-                <div class="admin-divider"></div>
-
-                <!-- Route section -->
-                <div class="admin-section-title">Route – Add</div>
-                <div class="admin-note">
-                    Required: <code>airline_id</code>, <code>src_id</code>, <code>dst_id</code>. Stops defaults to 0.
-                </div>
-                <div class="form-row">
-                    <label for="adminRouteAddAirlineId">Airline ID:</label>
-                    <input id="adminRouteAddAirlineId" class="input" type="number" placeholder="99999">
-                    <label for="adminRouteAddSrcId">Source ID:</label>
-                    <input id="adminRouteAddSrcId" class="input" type="number" placeholder="9999">
-                    <label for="adminRouteAddDstId">Dest ID:</label>
-                    <input id="adminRouteAddDstId" class="input" type="number" placeholder="1">
-                </div>
-                <div class="form-row">
-                    <label for="adminRouteAddStops">Stops:</label>
-                    <input id="adminRouteAddStops" class="input" type="number" placeholder="0">
-                    <button class="btn" onclick="adminRouteAdd()">Add Route</button>
-                </div>
-
-            </section>
-
-            <!-- OUTPUT -->
-            <section class="output-card tilt-card">
-                <div class="output-header">
+                <!-- output -->
+                <div class="output-pane">
+                    <div class="output-header">
                     <div class="output-title" id="outputTitle">Result</div>
-                    <div id="loader" class="loader"></div>
+                    <div class="output-subtitle" id="outputSubtitle">
+                        Choose an action from the menu to see results here.
+                    </div>
+                    </div>
+                    <div class="output-body placeholder" id="output">
+                    Select an action and run it to view airlines, airports, or routes.
+                    </div>
                 </div>
-                <div id="output" class="placeholder"></div>
-            </section>
-        </main>
+                </div>
+            </div>
+        </section>
+      </div>
     </div>
+  </div>
 </div>
 
-<!-- ID POPUP MODAL -->
+<!-- Toasts & loading -->
+<div id="loadingOverlay">
+  <div id="loader" class="loader"></div>
+</div>
+<div id="toastContainer" class="toast-container"></div>
+
+<!-- ID modal -->
 <div id="idModal" class="modal" onclick="onModalBackgroundClick(event)">
-    <div class="modal-card">
-        <div class="modal-header">
-            <div class="modal-title">My ID</div>
-            <button class="modal-close" onclick="hideIdModal()" aria-label="Close">×</button>
-        </div>
-        <div id="idModalBody" class="modal-body">
-            Loading...
-        </div>
+  <div class="modal-dialog">
+    <div class="modal-header">
+      <div class="modal-title">Student ID</div>
+      <button class="modal-close" onclick="hideIdModal()">×</button>
     </div>
+    <div id="idModalBody" class="modal-body">
+      Loading…
+    </div>
+  </div>
 </div>
 
-<!-- Loading overlay -->
-<div id="loadingOverlay" class="loading-overlay">
-    <div class="loading-overlay-inner">
-        <div class="loading-overlay-spinner"></div>
-        <div>Fetching data from C++ backend…</div>
+<!-- Delete / confirm modal -->
+<div id="confirmModal" class="modal" onclick="onConfirmBackgroundClick(event)">
+  <div class="modal-dialog">
+    <div class="modal-header">
+      <div class="modal-title" id="confirmModalTitle">Confirm action</div>
+      <button class="modal-close" onclick="hideConfirmModal()">×</button>
     </div>
+    <div id="confirmModalBody" class="modal-body">
+      Are you sure?
+    </div>
+    <div class="panel-actions" style="margin-top:8px; display:flex; justify-content:flex-end; gap:6px;">
+      <button class="btn btn-sm btn-ghost" onclick="hideConfirmModal()">Cancel</button>
+      <button class="btn btn-sm" id="confirmModalConfirmBtn">Yes, continue</button>
+    </div>
+  </div>
 </div>
 
-<!-- Toast container -->
-<div id="toastContainer"></div>
-
-<!-- Autocomplete lists -->
+<!-- Data lists for autocomplete -->
 <datalist id="airlineList"></datalist>
 <datalist id="airportList"></datalist>
 
@@ -889,805 +1647,1212 @@
 let currentTheme = 'dark';
 
 function applyTheme(theme) {
-    currentTheme = theme;
-    document.documentElement.setAttribute('data-theme', theme);
-    const icon = document.getElementById('themeIcon');
-    icon.style.transform = 'rotate(180deg)';
-    setTimeout(() => { icon.textContent = theme === 'dark' ? '🌙' : '☀️'; icon.style.transform = 'rotate(0deg)'; }, 120);
+  currentTheme = theme;
+  document.documentElement.setAttribute('data-theme', theme);
+  const icon = document.getElementById('themeIcon');
+  icon.style.transform = 'rotate(180deg)';
+  setTimeout(() => {
+    icon.textContent = theme === 'dark' ? '🌙' : '☀️';
+    icon.style.transform = 'rotate(0deg)';
+  }, 120);
 }
 
 function toggleTheme() {
-    applyTheme(currentTheme === 'dark' ? 'light' : 'dark');
+  applyTheme(currentTheme === 'dark' ? 'light' : 'dark');
 }
 
 /* ---------- PARTICLE BACKGROUND ---------- */
 function initParticles() {
-    const canvas = document.getElementById('bgCanvas');
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
+  const canvas = document.getElementById('bgCanvas');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
 
-    function resize() {
-        canvas.width = window.innerWidth;
-        canvas.height = window.innerHeight;
-    }
-    resize();
-    window.addEventListener('resize', resize);
+  function resize() {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+  }
+  resize();
+  window.addEventListener('resize', resize);
 
-    const particles = [];
-    const count = 60;
-    for (let i = 0; i < count; i++) {
-        particles.push({
-            x: Math.random() * canvas.width,
-            y: Math.random() * canvas.height,
-            r: Math.random() * 1.2 + 0.4,
-            dx: (Math.random() - 0.5) * 0.15,
-            dy: (Math.random() - 0.5) * 0.15
-        });
-    }
+  const particles = [];
+  const count = 60;
+  for (let i = 0; i < count; i++) {
+    particles.push({
+      x: Math.random() * canvas.width,
+      y: Math.random() * canvas.height,
+      r: Math.random() * 1.2 + 0.4,
+      dx: (Math.random() - 0.5) * 0.15,
+      dy: (Math.random() - 0.5) * 0.15
+    });
+  }
 
-    function animate() {
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        const color = getComputedStyle(document.documentElement).getPropertyValue('--particle-color').trim() || 'rgba(148,163,184,0.3)';
-        ctx.fillStyle = color;
-        for (const p of particles) {
-            p.x += p.dx;
-            p.y += p.dy;
-            if (p.x < 0) p.x = canvas.width;
-            if (p.x > canvas.width) p.x = 0;
-            if (p.y < 0) p.y = canvas.height;
-            if (p.y > canvas.height) p.y = 0;
-            ctx.beginPath();
-            ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
-            ctx.fill();
-        }
-        requestAnimationFrame(animate);
+  function animate() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    const color = getComputedStyle(document.documentElement)
+      .getPropertyValue('--particle-color').trim() || 'rgba(148,163,184,0.3)';
+    ctx.fillStyle = color;
+    for (const p of particles) {
+      p.x += p.dx;
+      p.y += p.dy;
+      if (p.x < 0) p.x = canvas.width;
+      if (p.x > canvas.width) p.x = 0;
+      if (p.y < 0) p.y = canvas.height;
+      if (p.y > canvas.height) p.y = 0;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+      ctx.fill();
     }
-    animate();
+    requestAnimationFrame(animate);
+  }
+  animate();
 }
 
 /* ---------- TOASTS ---------- */
 function showToast(message, type) {
-    const container = document.getElementById('toastContainer');
-    const toast = document.createElement('div');
-    toast.className = 'toast ' + (type === 'error' ? 'toast-error' : 'toast-success');
+  const container = document.getElementById('toastContainer');
+  const toast = document.createElement('div');
+  toast.className = 'toast ' + (type === 'error' ? 'toast-error' : 'toast-success');
 
-    const msgDiv = document.createElement('div');
-    msgDiv.className = 'toast-message';
-    msgDiv.textContent = message;
+  const msgDiv = document.createElement('div');
+  msgDiv.className = 'toast-message';
+  msgDiv.textContent = message;
 
-    const closeBtn = document.createElement('button');
-    closeBtn.className = 'toast-close';
-    closeBtn.textContent = '×';
-    closeBtn.onclick = () => {
-        toast.classList.remove('show');
-        setTimeout(() => toast.remove(), 200);
-    };
+  const closeBtn = document.createElement('button');
+  closeBtn.className = 'toast-close';
+  closeBtn.textContent = '×';
+  closeBtn.onclick = () => {
+    toast.classList.remove('show');
+    setTimeout(() => toast.remove(), 200);
+  };
 
-    toast.appendChild(msgDiv);
-    toast.appendChild(closeBtn);
-    container.appendChild(toast);
+  toast.appendChild(msgDiv);
+  toast.appendChild(closeBtn);
+  container.appendChild(toast);
 
-    requestAnimationFrame(() => toast.classList.add('show'));
-    setTimeout(() => {
-        toast.classList.remove('show');
-        setTimeout(() => toast.remove(), 200);
-    }, 3500);
+  requestAnimationFrame(() => toast.classList.add('show'));
+  setTimeout(() => {
+    toast.classList.remove('show');
+    setTimeout(() => toast.remove(), 200);
+  }, 3500);
 }
 
 /* ---------- LOADER ---------- */
 function setLoading(isLoading) {
-    const loader = document.getElementById('loader');
-    const overlay = document.getElementById('loadingOverlay');
-    if (!loader || !overlay) return;
-    if (isLoading) {
-        loader.classList.add('show');
-        overlay.classList.add('show');
-    } else {
-        loader.classList.remove('show');
-        overlay.classList.remove('show');
-    }
+  const loader = document.getElementById('loader');
+  const overlay = document.getElementById('loadingOverlay');
+  if (!loader || !overlay) return;
+  if (isLoading) {
+    loader.classList.add('show');
+    overlay.classList.add('show');
+  } else {
+    loader.classList.remove('show');
+    overlay.classList.remove('show');
+  }
 }
 
-/* ---------- HELPERS ---------- */
-function setOutput(html, title) {
-    if (title) document.getElementById("outputTitle").innerText = title;
-    const out = document.getElementById("output");
-    out.classList.remove("placeholder");
-    out.innerHTML = html;
-    enableTableSorting();
+/* ---------- MAP STUBS (no map in this version) ---------- */
+function hideMap() {}
+function showMapForAirport(data) {}
+function showMapForOneHop(a, b, c) {}
+function fetchAirportsForOneHop(src, dst, via) {}
+
+/* ---------- OUTPUT ---------- */
+function clearOutput() {
+  document.getElementById('outputTitle').innerText = 'Result';
+  document.getElementById('outputSubtitle').innerText =
+    'Choose an action from the menu to see results here.';
+  const out = document.getElementById('output');
+  out.classList.add('placeholder');
+  out.textContent = 'Select an action and run it to view airlines, airports, or routes.';
+  hideMap();
 }
+
+function setOutput(html, title, subtitle) {
+  if (title) document.getElementById('outputTitle').innerText = title;
+  if (subtitle) document.getElementById('outputSubtitle').innerText = subtitle;
+  const out = document.getElementById('output');
+  out.classList.remove('placeholder');
+  out.innerHTML = html;
+  enableTableSorting();
+}
+
 function setError(err) {
-    const msg = (err && err.message) ? err.message : String(err);
-    document.getElementById("outputTitle").innerText = "Error";
-    const out = document.getElementById("output");
-    out.classList.remove("placeholder");
-    out.textContent = msg;
-    setLoading(false);
-    showToast(msg, 'error');
-}
-function api(path) {
-    return fetch(path).then(res => {
-        if (!res.ok) {
-            return res.text().then(t => { throw new Error(t || ("HTTP " + res.status)); });
-        }
-        return res.json();
-    });
-}
-function apiPost(path, payload) {
-    return fetch(path, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-    }).then(res => {
-        if (!res.ok) {
-            return res.text().then(t => { throw new Error(t || ("HTTP " + res.status)); });
-        }
-        return res.json();
-    });
+  const msg = (err && err.message) ? err.message : String(err);
+  document.getElementById('outputTitle').innerText = 'Error';
+  document.getElementById('outputSubtitle').innerText = '';
+  const out = document.getElementById('output');
+  out.classList.remove('placeholder');
+  out.textContent = msg;
+  setLoading(false);
+  hideMap();
+  showToast(msg, 'error');
 }
 
-/* ---------- ID POPUP ---------- */
+/* ---------- API HELPERS ---------- */
+function api(path) {
+  return fetch(path).then(res => {
+    if (!res.ok) {
+      return res.text().then(t => { throw new Error(t || ('HTTP ' + res.status)); });
+    }
+    return res.json();
+  });
+}
+
+function apiPost(path, payload) {
+  return fetch(path, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  }).then(res => {
+    if (!res.ok) {
+      return res.text().then(t => { throw new Error(t || ('HTTP ' + res.status)); });
+    }
+    return res.json();
+  });
+}
+
+/* ---------- ID MODAL ---------- */
 function showIdModal() {
-    document.getElementById("idModal").classList.add("show");
+  document.getElementById('idModal').classList.add('show');
 }
 function hideIdModal() {
-    document.getElementById("idModal").classList.remove("show");
+  document.getElementById('idModal').classList.remove('show');
 }
 function onModalBackgroundClick(event) {
-    if (event.target.id === "idModal") hideIdModal();
+  if (event.target.id === 'idModal') hideIdModal();
 }
 function renderIdInModal(data) {
-    const name = data.name || "";
-    const id = data.deanza_id || data.id || "";
-    const chip = document.getElementById("headerIdText");
-    chip.textContent = name && id ? `${name} (${id})` : "";
-
-    const html = `
-      <div class="modal-body">
-        <div class="info-grid">
-          <div class="info-item">
-            <div class="info-label">Name</div>
-            <div class="info-value">${name}</div>
-          </div>
-          <div class="info-item">
-            <div class="info-label">De Anza ID</div>
-            <div class="info-value">${id}</div>
-          </div>
+  const name = data.name || '';
+  const id = data.deanza_id || data.id || '';
+  const chip = document.getElementById('headerIdText');
+  chip.textContent = name && id ? `${name} (${id})` : '';
+  const html = `
+    <div class="modal-body">
+      <div class="info-grid">
+        <div class="info-item">
+          <div class="info-label">Name</div>
+          <div class="info-value">${name}</div>
         </div>
-        <p style="font-size:13px;color:var(--muted);margin-top:8px;">
-          This ID is returned directly from the C++ backend via the
-          <code>/id</code> endpoint for the CIS 22C Honors project.
-        </p>
+        <div class="info-item">
+          <div class="info-label">De Anza ID</div>
+          <div class="info-value">${id}</div>
+        </div>
       </div>
-    `;
-    document.getElementById("idModalBody").innerHTML = html;
+      <p style="font-size:11px;color:var(--muted);margin-top:6px;">
+        This ID is returned from the C++ backend via the <code>/id</code> endpoint.
+      </p>
+    </div>`;
+  document.getElementById('idModalBody').innerHTML = html;
 }
 function loadId() {
-    document.getElementById("idModalBody").textContent = "Loading...";
-    showIdModal();
-    api('/id')
-        .then(data => { renderIdInModal(data); showToast("ID loaded from backend.", "success"); })
-        .catch(err => {
-            document.getElementById("idModalBody").textContent = "Error: " + err.message;
-            showToast(err.message, "error");
-        });
+  document.getElementById('idModalBody').textContent = 'Loading…';
+  showIdModal();
+  api('/id')
+    .then(data => { renderIdInModal(data); showToast('ID loaded from backend.', 'success'); })
+    .catch(err => {
+      document.getElementById('idModalBody').textContent = 'Error: ' + err.message;
+      showToast(err.message, 'error');
+    });
 }
+
+/* ---------- GENERIC CONFIRM MODAL ---------- */
+let confirmCallback = null;
+
+function showConfirm(message, onConfirm, title) {
+  confirmCallback = typeof onConfirm === 'function' ? onConfirm : null;
+  const bodyEl = document.getElementById('confirmModalBody');
+  const titleEl = document.getElementById('confirmModalTitle');
+  if (bodyEl) bodyEl.textContent = message || 'Are you sure?';
+  if (titleEl && title) titleEl.textContent = title;
+  document.getElementById('confirmModal').classList.add('show');
+}
+
+function hideConfirmModal() {
+  document.getElementById('confirmModal').classList.remove('show');
+  confirmCallback = null;
+}
+
+function onConfirmBackgroundClick(event) {
+  if (event.target.id === 'confirmModal') {
+    hideConfirmModal();
+  }
+}
+
 
 /* ---------- TABLE SORTING ---------- */
 function enableTableSorting() {
-    document.querySelectorAll('#output table.sortable').forEach(table => {
-        const thead = table.tHead;
-        if (!thead) return;
-        Array.from(thead.rows[0].cells).forEach((th, index) => {
-            th.classList.add('sortable');
-            th.onclick = () => {
-                const dir = th.dataset.sortDir === 'asc' ? 'desc' : 'asc';
-                th.dataset.sortDir = dir;
-                Array.from(th.parentElement.cells).forEach(other => {
-                    if (other !== th) other.removeAttribute('data-sort-dir');
-                });
-                sortTableByColumn(table, index, dir === 'asc');
-            };
+  document.querySelectorAll('#output table.sortable').forEach(table => {
+    const thead = table.tHead;
+    if (!thead) return;
+    Array.from(thead.rows[0].cells).forEach((th, index) => {
+      th.classList.add('sortable');
+      th.onclick = () => {
+        const dir = th.dataset.sortDir === 'asc' ? 'desc' : 'asc';
+        th.dataset.sortDir = dir;
+        Array.from(th.parentElement.cells).forEach(other => {
+          if (other !== th) other.removeAttribute('data-sort-dir');
         });
+        sortTableByColumn(table, index, dir === 'asc');
+      };
     });
+  });
 }
+
 function sortTableByColumn(table, columnIndex, asc = true) {
-    const tbody = table.tBodies[0];
-    const rows = Array.from(tbody.rows);
-    rows.sort((a, b) => {
-        const A = a.cells[columnIndex].innerText.trim();
-        const B = b.cells[columnIndex].innerText.trim();
-        const numA = parseFloat(A), numB = parseFloat(B);
-        if (!isNaN(numA) && !isNaN(numB)) {
-            return asc ? numA - numB : numB - numA;
-        }
-        return asc ? A.localeCompare(B) : B.localeCompare(A);
-    });
-    rows.forEach(r => tbody.appendChild(r));
+  const tbody = table.tBodies[0];
+  const rows = Array.from(tbody.rows);
+  rows.sort((a, b) => {
+    const A = a.cells[columnIndex].innerText.trim();
+    const B = b.cells[columnIndex].innerText.trim();
+    const numA = parseFloat(A), numB = parseFloat(B);
+    if (!isNaN(numA) && !isNaN(numB)) {
+      return asc ? numA - numB : numB - numA;
+    }
+    return asc ? A.localeCompare(B) : B.localeCompare(A);
+  });
+  rows.forEach(r => tbody.appendChild(r));
 }
 
-/* ---------- RENDERERS ---------- */
-function renderAirline(data, code) {
-    const html = `
-      <div class="info-grid">
-        <div class="info-item">
-          <div class="info-label">Name</div>
-          <div class="info-value">${data.name || ""}</div>
-        </div>
-        <div class="info-item">
-          <div class="info-label">IATA</div>
-          <div class="info-value">${data.iata || code || ""}</div>
-        </div>
-        <div class="info-item">
-          <div class="info-label">Country</div>
-          <div class="info-value">${data.country || ""}</div>
-        </div>
-        <div class="info-item">
-          <div class="info-label">Active</div>
-          <div class="info-value">${String(data.active)}</div>
-        </div>
-        <div class="info-item">
-          <div class="info-label">Internal ID</div>
-          <div class="info-value">${data.id}</div>
-        </div>
-      </div>
-    `;
-    setOutput(html, `Airline: ${data.iata || code}`);
-    showToast(`Loaded airline ${data.iata || code}`, "success");
-}
-function renderAirport(data, code) {
-    const html = `
-      <div class="info-grid">
-        <div class="info-item">
-          <div class="info-label">Name</div>
-          <div class="info-value">${data.name || ""}</div>
-        </div>
-        <div class="info-item">
-          <div class="info-label">IATA</div>
-          <div class="info-value">${data.iata || code || ""}</div>
-        </div>
-        <div class="info-item">
-          <div class="info-label">City</div>
-          <div class="info-value">${data.city || ""}</div>
-        </div>
-        <div class="info-item">
-          <div class="info-label">Country</div>
-          <div class="info-value">${data.country || ""}</div>
-        </div>
-        <div class="info-item">
-          <div class="info-label">Latitude</div>
-          <div class="info-value">${data.latitude}</div>
-        </div>
-        <div class="info-item">
-          <div class="info-label">Longitude</div>
-          <div class="info-value">${data.longitude}</div>
-        </div>
-      </div>
-    `;
-    setOutput(html, `Airport: ${data.iata || code}`);
-    showToast(`Loaded airport ${data.iata || code}`, "success");
-}
+/* ---------- RENDER HELPERS ---------- */
 function renderTable(headers, rows) {
-    let thead = "<tr>";
-    headers.forEach(h => thead += `<th>${h}</th>`);
-    thead += "</tr>";
-    let tbody = "";
-    rows.forEach(r => {
-        tbody += "<tr>";
-        r.forEach(cell => { tbody += `<td>${cell}</td>`; });
-        tbody += "</tr>";
-    });
-    return `<div style="max-height:340px;overflow:auto;"><table class="sortable">${thead}${tbody}</table></div>`;
+  let thead = '<tr>';
+  headers.forEach(h => thead += `<th>${h}</th>`);
+  thead += '</tr>';
+  let tbody = '';
+  rows.forEach(r => {
+    tbody += '<tr>';
+    r.forEach(cell => { tbody += `<td>${cell}</td>`; });
+    tbody += '</tr>';
+  });
+  return `<div style="max-height:340px;overflow:auto;"><table class="sortable">${thead}${tbody}</table></div>`;
 }
+
+function renderAirline(data, code) {
+  hideMap();
+  const active = !!data.active;
+  const activeLabel = active ? 'Active airline' : 'Inactive / historical';
+  const statusBadge = `<span class="status-badge ${active ? 'status-active' : 'status-inactive'}">${active ? 'Active' : 'Inactive'}</span>`;
+
+  const infoHtml = `
+    <div class="info-grid">
+      <div class="info-item">
+        <div class="info-label">Name</div>
+        <div class="info-value">${data.name || ''}</div>
+      </div>
+      <div class="info-item">
+        <div class="info-label">IATA</div>
+        <div class="info-value">${data.iata || code || ''}</div>
+      </div>
+      <div class="info-item">
+        <div class="info-label">Country</div>
+        <div class="info-value">${data.country || ''}</div>
+      </div>
+      <div class="info-item">
+        <div class="info-label">Active</div>
+        <div class="info-value">${String(data.active)}</div>
+      </div>
+      <div class="info-item">
+        <div class="info-label">Internal ID</div>
+        <div class="info-value">${data.id}</div>
+      </div>
+      <div class="info-item">
+        <div class="info-label">Status</div>
+        <div class="info-value">${statusBadge}</div>
+      </div>
+    </div>`;
+
+  const pieces = [];
+  if (data.name) pieces.push(`✈️ <strong>${data.name}</strong>`);
+  if (data.country) pieces.push(`based in <strong>${data.country}</strong>`);
+  if (data.iata || code) pieces.push(`using IATA code <strong>${data.iata || code}</strong>`);
+  const summaryLine = pieces.length
+    ? pieces.join(' ') + `. ${activeLabel}.`
+    : 'Basic information about this airline loaded from the backend.';
+
+  const summaryHtml = `
+    <div class="summary-card">
+      <div class="summary-title">Quick summary</div>
+      <div class="summary-body">
+        <div>${summaryLine}</div>
+      </div>
+    </div>`;
+
+  setOutput(infoHtml + summaryHtml,
+    `Airline: ${data.iata || code}`,
+    'Basic airline details from the C++ backend.');
+  showToast(`Loaded airline ${data.iata || code}`, 'success');
+}
+
+
+function renderAirport(data, code) {
+  const infoHtml = `
+    <div class="info-grid">
+      <div class="info-item">
+        <div class="info-label">Name</div>
+        <div class="info-value">${data.name || ''}</div>
+      </div>
+      <div class="info-item">
+        <div class="info-label">IATA</div>
+        <div class="info-value">${data.iata || code || ''}</div>
+      </div>
+      <div class="info-item">
+        <div class="info-label">City</div>
+        <div class="info-value">${data.city || ''}</div>
+      </div>
+      <div class="info-item">
+        <div class="info-label">Country</div>
+        <div class="info-value">${data.country || ''}</div>
+      </div>
+      <div class="info-item">
+        <div class="info-label">Latitude</div>
+        <div class="info-value">${data.latitude}</div>
+      </div>
+      <div class="info-item">
+        <div class="info-label">Longitude</div>
+        <div class="info-value">${data.longitude}</div>
+      </div>
+    </div>`;
+
+  const city = data.city || '';
+  const country = data.country || '';
+  const name = data.name || 'This airport';
+  const summaryLine = city || country
+    ? `🛬 <strong>${name}</strong> primarily serves <strong>${city || ''}${city && country ? ', ' : ''}${country || ''}</strong>.`
+    : '🛬 Airport metadata and coordinates loaded from the backend.';
+
+  const summaryHtml = `
+    <div class="summary-card">
+      <div class="summary-title">Quick summary</div>
+      <div class="summary-body">
+        <div>${summaryLine}</div>
+      </div>
+    </div>`;
+
+  setOutput(infoHtml + summaryHtml,
+    `Airport: ${data.iata || code}`,
+    'Airport location and metadata.');
+  showMapForAirport(data);
+  showToast(`Loaded airport ${data.iata || code}`, 'success');
+}
+
+
 function renderAirlineRoutes(data, code) {
-    const airline = data.airline || {};
-    const list = data.airports || [];
-    const rows = list.map(a => [
-        a.iata || "",
-        a.name || "",
-        a.city || "",
-        a.country || "",
-        a.route_count
-    ]);
-    const table = renderTable(
-        ["Airport IATA", "Name", "City", "Country", "# Routes"],
-        rows
-    );
-    const titleHtml = `
-      <div class="info-grid">
-        <div class="info-item">
-          <div class="info-label">Airline</div>
-          <div class="info-value">${airline.name || ""}</div>
-        </div>
-        <div class="info-item">
-          <div class="info-label">IATA</div>
-          <div class="info-value">${airline.iata || code || ""}</div>
-        </div>
+  hideMap();
+  const airline = data.airline || {};
+  const list = data.airports || [];
+
+  const rows = list.map(a => [
+    a.iata || '',
+    a.name || '',
+    a.city || '',
+    a.country || '',
+    a.route_count
+  ]);
+
+  // pick "best" airport = most routes
+  let best = null;
+  list.forEach(a => {
+    if (!best || (a.route_count || 0) > (best.route_count || 0)) {
+      best = a;
+    }
+  });
+
+  const table = renderTable(
+    ['Airport IATA', 'Name', 'City', 'Country', '# Routes'],
+    rows
+  );
+
+  const titleHtml = `
+    <div class="info-grid">
+      <div class="info-item">
+        <div class="info-label">Airline</div>
+        <div class="info-value">${airline.name || ''}</div>
       </div>
-    `;
-    setOutput(titleHtml + table, `Airline Route Report: ${airline.iata || code}`);
-    showToast(`Loaded airline route report for ${airline.iata || code}`, "success");
+      <div class="info-item">
+        <div class="info-label">IATA</div>
+        <div class="info-value">${airline.iata || code || ''}</div>
+      </div>
+    </div>`;
+
+  const highlight = best ? `
+    <div class="summary-card">
+      <div class="summary-title">Busiest airport for this airline</div>
+      <div class="summary-body">
+        <div>🏙️ <strong>${best.name || ''}</strong> (<strong>${best.iata || ''}</strong>) in
+          <strong>${best.city || ''}${best.city && best.country ? ', ' : ''}${best.country || ''}</strong>
+          appears on <strong>${best.route_count}</strong> routes for this airline.</div>
+      </div>
+    </div>` : '';
+
+  setOutput(titleHtml + highlight + table,
+    `Airline Route Report: ${airline.iata || code}`,
+    'Airports served by the selected airline.');
+  showToast(`Loaded airline route report for ${airline.iata || code}`, 'success');
 }
+
+
 function renderAirportRoutes(data, code) {
-    const airport = data.airport || {};
-    const list = data.airlines || [];
-    const rows = list.map(a => [
-        a.iata || "",
-        a.name || "",
-        a.country || "",
-        a.route_count
-    ]);
-    const table = renderTable(
-        ["Airline IATA", "Name", "Country", "# Routes"],
-        rows
-    );
-    const titleHtml = `
-      <div class="info-grid">
-        <div class="info-item">
-          <div class="info-label">Airport</div>
-          <div class="info-value">${airport.name || ""}</div>
-        </div>
-        <div class="info-item">
-          <div class="info-label">IATA</div>
-          <div class="info-value">${airport.iata || code || ""}</div>
-        </div>
-        <div class="info-item">
-          <div class="info-label">City / Country</div>
-          <div class="info-value">${airport.city || ""} ${airport.country ? " / " + airport.country : ""}</div>
-        </div>
+  hideMap();
+  const airport = data.airport || {};
+  const list = data.airlines || [];
+
+  const rows = list.map(a => [
+    a.iata || '',
+    a.name || '',
+    a.country || '',
+    a.route_count
+  ]);
+
+  // pick "best" airline = most routes
+  let best = null;
+  list.forEach(a => {
+    if (!best || (a.route_count || 0) > (best.route_count || 0)) {
+      best = a;
+    }
+  });
+
+  const table = renderTable(
+    ['Airline IATA', 'Name', 'Country', '# Routes'],
+    rows
+  );
+
+  const titleHtml = `
+    <div class="info-grid">
+      <div class="info-item">
+        <div class="info-label">Airport</div>
+        <div class="info-value">${airport.name || ''}</div>
       </div>
-    `;
-    setOutput(titleHtml + table, `Airport Route Report: ${airport.iata || code}`);
-    showToast(`Loaded airport route report for ${airport.iata || code}`, "success");
+      <div class="info-item">
+        <div class="info-label">IATA</div>
+        <div class="info-value">${airport.iata || code || ''}</div>
+      </div>
+      <div class="info-item">
+        <div class="info-label">City / Country</div>
+        <div class="info-value">${airport.city || ''}${airport.city && airport.country ? ' / ' : ''}${airport.country || ''}</div>
+      </div>
+    </div>`;
+
+  const highlight = best ? `
+    <div class="summary-card">
+      <div class="summary-title">Top airline at this airport</div>
+      <div class="summary-body">
+        <div>✈️ <strong>${best.name || ''}</strong> (<strong>${best.iata || ''}</strong>) operates
+          <strong>${best.route_count}</strong> routes involving this airport.</div>
+      </div>
+    </div>` : '';
+
+  setOutput(titleHtml + highlight + table,
+    `Airport Route Report: ${airport.iata || code}`,
+    'Airlines that serve the selected airport.');
+  showToast(`Loaded airport route report for ${airport.iata || code}`, 'success');
 }
+
+
 function renderAirlinesList(data) {
-    const list = data.airlines || [];
-    const rows = list.map(a => [
-        a.iata || "",
-        a.name || "",
-        a.country || "",
-        String(a.active)
-    ]);
-    const table = renderTable(
-        ["IATA", "Name", "Country", "Active"],
-        rows
-    );
-    setOutput(table, "All Airlines (sorted by IATA)");
-    showToast(`Loaded ${list.length} airlines.`, "success");
+  hideMap();
+  const list = data.airlines || [];
+  const rows = list.map(a => {
+    const badge = `<span class="status-badge ${a.active ? 'status-active' : 'status-inactive'}">${a.active ? 'Active' : 'Inactive'}</span>`;
+    return [
+      a.iata || '',
+      a.name || '',
+      a.country || '',
+      badge
+    ];
+  });
+  const table = renderTable(
+    ['IATA', 'Name', 'Country', 'Status'],
+    rows
+  );
+  setOutput(table, 'All Airlines (sorted by IATA)', 'Snapshot of all airlines currently loaded in memory.');
+  showToast(`Loaded ${list.length} airlines.`, 'success');
 }
+
 function renderAirportsList(data) {
-    const list = data.airports || [];
-    const rows = list.map(a => [
-        a.iata || "",
-        a.name || "",
-        a.city || "",
-        a.country || ""
-    ]);
-    const table = renderTable(
-        ["IATA", "Name", "City", "Country"],
-        rows
-    );
-    setOutput(table, "All Airports (sorted by IATA)");
-    showToast(`Loaded ${list.length} airports.`, "success");
+  hideMap();
+  const list = data.airports || [];
+  const rows = list.map(a => [
+    a.iata || '',
+    a.name || '',
+    a.city || '',
+    a.country || ''
+  ]);
+  const table = renderTable(
+    ['IATA', 'Name', 'City', 'Country'],
+    rows
+  );
+  setOutput(table, 'All Airports (sorted by IATA)', 'Snapshot of all airports currently loaded in memory.');
+  showToast(`Loaded ${list.length} airports.`, 'success');
 }
+
 function renderOneHop(data, src, dst) {
-    const routes = data.routes || [];
-    if (!routes.length) {
-        setOutput(
-            `<p>No one-hop routes found from <strong>${src}</strong> to <strong>${dst}</strong> with 0 stops on each leg.</p>`,
-            `One-Hop Routes: ${src} → ${dst}`
-        );
-        showToast(`No one-hop routes found for ${src} → ${dst}`, "error");
-        return;
-    }
-
-    const rows = routes.map(r => [
-        (r.via && r.via.iata) || "",
-        (r.via && r.via.name) || "",
-        r.total_miles ? r.total_miles.toFixed(1) : "",
-        r.airline1 && r.airline1.iata ? r.airline1.iata : "",
-        r.airline2 && r.airline2.iata ? r.airline2.iata : ""
-    ]);
-
-    const table = renderTable(
-        ["Via IATA", "Via Name", "Total Miles", "Airline 1", "Airline 2"],
-        rows
+  const routes = data.routes || [];
+  if (!routes.length) {
+    hideMap();
+    setOutput(
+      `<p>No one-hop routes found from <strong>${src}</strong> to <strong>${dst}</strong> with 0 stops on each leg.</p>`,
+      `One-Hop Routes: ${src} → ${dst}`,
+      'No valid one-hop combinations were found.'
     );
+    showToast(`No one-hop routes found for ${src} → ${dst}`, 'error');
+    return;
+  }
 
-    const header = `
-      <div class="info-grid">
-        <div class="info-item">
-          <div class="info-label">Source</div>
-          <div class="info-value">${(data.source && data.source.iata) || src}</div>
-        </div>
-        <div class="info-item">
-          <div class="info-label">Destination</div>
-          <div class="info-value">${(data.destination && data.destination.iata) || dst}</div>
-        </div>
+  const rows = routes.map(r => [
+    (r.via && r.via.iata) || r.via_iata || '',
+    (r.via && r.via.name) || r.via_name || '',
+    r.total_miles ? r.total_miles.toFixed(1) : '',
+    r.airline1 && r.airline1.iata ? r.airline1.iata : (r.airline1_iata || ''),
+    r.airline2 && r.airline2.iata ? r.airline2.iata : (r.airline2_iata || '')
+  ]);
+
+  const table = renderTable(
+    ['Via IATA', 'Via Name', 'Total Miles', 'Airline 1', 'Airline 2'],
+    rows
+  );
+
+  // Trip-style summary with airlines + best route
+  const viaSet = new Set();
+  const airlineSet = new Set();
+  let best = null;
+
+  routes.forEach(r => {
+    const viaCode = (r.via && r.via.iata) || r.via_iata;
+    if (viaCode) viaSet.add(viaCode);
+
+    const a1 = r.airline1 && r.airline1.iata ? r.airline1.iata : (r.airline1_iata || '');
+    const a2 = r.airline2 && r.airline2.iata ? r.airline2.iata : (r.airline2_iata || '');
+    if (a1) airlineSet.add(a1);
+    if (a2) airlineSet.add(a2);
+
+    if (!best || (r.total_miles || Infinity) < (best.total_miles || Infinity)) {
+      best = r;
+    }
+  });
+
+  const airlinesList = Array.from(airlineSet).sort().join(', ');
+  const bestVia = best ? ((best.via && best.via.iata) || best.via_iata || '') : '';
+  const bestMiles = best && best.total_miles ? best.total_miles.toFixed(1) : '';
+
+  let bestAirlineCodes = [];
+  if (best) {
+    const a1 = best.airline1 && best.airline1.iata ? best.airline1.iata : (best.airline1_iata || '');
+    const a2 = best.airline2 && best.airline2.iata ? best.airline2.iata : (best.airline2_iata || '');
+    if (a1) bestAirlineCodes.push(a1);
+    if (a2 && a2 !== a1) bestAirlineCodes.push(a2);
+  }
+  const bestAirlineStr = bestAirlineCodes.join(' + ');
+
+  const header = `
+    <div class="info-grid">
+      <div class="info-item">
+        <div class="info-label">Source</div>
+        <div class="info-value">${src}</div>
       </div>
-    `;
-
-    // Simple SVG mini graph using first via node
-    const first = routes[0];
-    const viaLabel = (first.via && first.via.iata) || "X";
-    const srcLabel = (data.source && data.source.iata) || src;
-    const dstLabel = (data.destination && data.destination.iata) || dst;
-    const graph = `
-      <div class="onehop-graph">
-        <svg width="100%" height="80" viewBox="0 0 260 80">
-          <line x1="30" y1="40" x2="130" y2="40" stroke="var(--border-soft)" stroke-width="1.5" />
-          <line x1="130" y1="40" x2="230" y2="40" stroke="var(--border-soft)" stroke-width="1.5" />
-          <circle cx="30" cy="40" r="6" fill="var(--accent)" />
-          <circle cx="130" cy="40" r="6" fill="var(--accent)" />
-          <circle cx="230" cy="40" r="6" fill="var(--accent)" />
-          <text x="30" y="62" text-anchor="middle" font-size="11" fill="var(--muted)">${srcLabel}</text>
-          <text x="130" y="62" text-anchor="middle" font-size="11" fill="var(--muted)">${viaLabel}</text>
-          <text x="230" y="62" text-anchor="middle" font-size="11" fill="var(--muted)">${dstLabel}</text>
-        </svg>
+      <div class="info-item">
+        <div class="info-label">Destination</div>
+        <div class="info-value">${dst}</div>
       </div>
-    `;
+    </div>`;
 
-    setOutput(header + graph + table, `One-Hop Routes: ${src} → ${dst}`);
-    showToast(`Found ${routes.length} one-hop routes for ${src} → ${dst}`, "success");
+  const summaryHtml = `
+    <div class="summary-card">
+        <div class="summary-title">Trip Summary</div>
+        <div class="summary-body">
+
+        <div>✈️ <strong>${routes.length}</strong> routes found from 
+            <strong>${src}</strong> to <strong>${dst}</strong>.
+        </div>
+
+        <div>🛫 <strong>${viaSet.size}</strong> different connecting airports.</div>
+
+        <div>🏢 <strong>${airlineSet.size}</strong> airlines operate these connections.</div>
+
+        ${best ? `
+            <div style="margin-top:6px;">
+            ⭐ <strong>Shortest route:</strong><br>
+            • <strong>${src}</strong> → <strong>${bestVia}</strong> → <strong>${dst}</strong><br>
+            • Airlines: <strong>${bestAirlineStr || 'unknown'}</strong><br>
+            • Distance: <strong>${bestMiles} miles</strong>
+            </div>
+        ` : ''}
+        </div>
+    </div>
+  `;
+
+  setOutput(header + summaryHtml + table,
+    `One-Hop Routes: ${src} → ${dst}`,
+    'Sorted by total air miles (ascending).');
+  showToast(`Found ${routes.length} one-hop routes for ${src} → ${dst}`, 'success');
 }
 
-/* ---------- API CALLS (with spinner) ---------- */
+
+
+/* ---------- ACTION CALLS ---------- */
 function lookupAirline() {
-    const code = document.getElementById("airlineInput").value.trim();
-    if (!code) {
-        setError(new Error("Please enter an airline IATA code."));
-        return;
-    }
-    setLoading(true);
-    api(`/airline?iata=${encodeURIComponent(code)}`)
-        .then(data => renderAirline(data, code))
-        .catch(setError)
-        .finally(() => setLoading(false));
+  const code = document.getElementById('airlineInput').value.trim();
+  if (!code) {
+    setError(new Error('Please enter an airline IATA code.'));
+    return;
+  }
+  setLoading(true);
+  api(`/airline?iata=${encodeURIComponent(code)}`)
+    .then(data => renderAirline(data, code))
+    .catch(setError)
+    .finally(() => setLoading(false));
 }
+
 function lookupAirport() {
-    const code = document.getElementById("airportInput").value.trim();
-    if (!code) {
-        setError(new Error("Please enter an airport IATA code."));
-        return;
-    }
-    setLoading(true);
-    api(`/airport?iata=${encodeURIComponent(code)}`)
-        .then(data => renderAirport(data, code))
-        .catch(setError)
-        .finally(() => setLoading(false));
+  const code = document.getElementById('airportInput').value.trim();
+  if (!code) {
+    setError(new Error('Please enter an airport IATA code.'));
+    return;
+  }
+  setLoading(true);
+  api(`/airport?iata=${encodeURIComponent(code)}`)
+    .then(data => renderAirport(data, code))
+    .catch(setError)
+    .finally(() => setLoading(false));
 }
+
 function airlineRoutes() {
-    const code = document.getElementById("airlineRouteInput").value.trim();
-    if (!code) {
-        setError(new Error("Please enter an airline IATA code."));
-        return;
-    }
-    setLoading(true);
-    api(`/airline-routes?iata=${encodeURIComponent(code)}`)
-        .then(data => renderAirlineRoutes(data, code))
-        .catch(setError)
-        .finally(() => setLoading(false));
+  const code = document.getElementById('airlineRouteInput').value.trim();
+  if (!code) {
+    setError(new Error('Please enter an airline IATA code.'));
+    return;
+  }
+  setLoading(true);
+  api(`/airline-routes?iata=${encodeURIComponent(code)}`)
+    .then(data => renderAirlineRoutes(data, code))
+    .catch(setError)
+    .finally(() => setLoading(false));
 }
+
 function airportRoutes() {
-    const code = document.getElementById("airportRouteInput").value.trim();
-    if (!code) {
-        setError(new Error("Please enter an airport IATA code."));
-        return;
-    }
-    setLoading(true);
-    api(`/airport-routes?iata=${encodeURIComponent(code)}`)
-        .then(data => renderAirportRoutes(data, code))
-        .catch(setError)
-        .finally(() => setLoading(false));
+  const code = document.getElementById('airportRouteInput').value.trim();
+  if (!code) {
+    setError(new Error('Please enter an airport IATA code.'));
+    return;
+  }
+  setLoading(true);
+  api(`/airport-routes?iata=${encodeURIComponent(code)}`)
+    .then(data => renderAirportRoutes(data, code))
+    .catch(setError)
+    .finally(() => setLoading(false));
 }
+
 function oneHop() {
-    const src = document.getElementById("oneHopSrcInput").value.trim();
-    const dst = document.getElementById("oneHopDstInput").value.trim();
-    if (!src || !dst) {
-        setError(new Error("Please enter both source and destination IATA codes."));
-        return;
-    }
-    setLoading(true);
-    api(`/one-hop?src=${encodeURIComponent(src)}&dst=${encodeURIComponent(dst)}`)
-        .then(data => renderOneHop(data, src, dst))
-        .catch(setError)
-        .finally(() => setLoading(false));
+  const src = document.getElementById('oneHopSrcInput').value.trim();
+  const dst = document.getElementById('oneHopDstInput').value.trim();
+  if (!src || !dst) {
+    setError(new Error('Please enter both source and destination IATA codes.'));
+    return;
+  }
+  setLoading(true);
+  api(`/one-hop?src=${encodeURIComponent(src)}&dst=${encodeURIComponent(dst)}`)
+    .then(data => renderOneHop(data, src, dst))
+    .catch(setError)
+    .finally(() => setLoading(false));
 }
+
 function allAirlines() {
-    setLoading(true);
-    api('/airlines-by-iata')
-        .then(renderAirlinesList)
-        .catch(setError)
-        .finally(() => setLoading(false));
+  setLoading(true);
+  api('/airlines-by-iata')
+    .then(renderAirlinesList)
+    .catch(setError)
+    .finally(() => setLoading(false));
 }
+
 function allAirports() {
-    setLoading(true);
-    api('/airports-by-iata')
-        .then(renderAirportsList)
-        .catch(setError)
-        .finally(() => setLoading(false));
+  setLoading(true);
+  api('/airports-by-iata')
+    .then(renderAirportsList)
+    .catch(setError)
+    .finally(() => setLoading(false));
 }
 
 /* ---------- ADMIN CALLS ---------- */
 function adminAirlineAdd() {
-    const id = parseInt(document.getElementById("adminAirlineAddId").value, 10);
-    const iata = document.getElementById("adminAirlineAddIata").value.trim();
-    const name = document.getElementById("adminAirlineAddName").value.trim();
-    const country = document.getElementById("adminAirlineAddCountry").value.trim();
-    const active = document.getElementById("adminAirlineAddActive").checked;
-
-    if (!id || !iata || !name) {
-        setError(new Error("Airline Add: id, iata, and name are required."));
-        return;
-    }
-    setLoading(true);
-    apiPost('/airline-add', {
-        id: id,
-        iata: iata,
-        name: name,
-        country: country,
-        active: active
-    })
-    .then(resp => {
-        showToast(resp.message || "Airline added.", "success");
-        setOutput(
-            `<p>Airline added: <strong>${resp.airline.iata}</strong> — ${resp.airline.name}</p>`,
-            "Admin: Airline Add"
-        );
-        preloadIataLists();
-    })
-    .catch(setError)
-    .finally(() => setLoading(false));
+  const id = parseInt(document.getElementById('adminAirlineAddId').value, 10);
+  const iata = document.getElementById('adminAirlineAddIata').value.trim();
+  const name = document.getElementById('adminAirlineAddName').value.trim();
+  const country = document.getElementById('adminAirlineAddCountry').value.trim();
+  const active = document.getElementById('adminAirlineAddActive').checked;
+  if (!id || !iata || !name) {
+    setError(new Error('Airline Add: id, iata, and name are required.'));
+    return;
+  }
+  setLoading(true);
+  apiPost('/airline-add', {
+    id: id,
+    iata: iata,
+    name: name,
+    country: country,
+    active: active
+  })
+  .then(resp => {
+    showToast(resp.message || 'Airline added.', 'success');
+    setOutput(
+      `<p>Airline added: <strong>${resp.airline.iata}</strong> — ${resp.airline.name}</p>`,
+      'Admin: Airline Add',
+      ''
+    );
+    hideMap();
+    preloadIataLists();
+  })
+  .catch(setError)
+  .finally(() => setLoading(false));
 }
 
 function adminAirlineUpdate() {
-    const id = parseInt(document.getElementById("adminAirlineUpdateId").value, 10);
-    if (!id) {
-        setError(new Error("Airline Update: id is required."));
-        return;
-    }
-    const iata = document.getElementById("adminAirlineUpdateIata").value.trim();
-    const name = document.getElementById("adminAirlineUpdateName").value.trim();
-    const country = document.getElementById("adminAirlineUpdateCountry").value.trim();
-    const activeChecked = document.getElementById("adminAirlineUpdateActive").checked;
+  const id = parseInt(document.getElementById('adminAirlineUpdateId').value, 10);
+  if (!id) {
+    setError(new Error('Airline Update: id is required.'));
+    return;
+  }
+  const iata = document.getElementById('adminAirlineUpdateIata').value.trim();
+  const name = document.getElementById('adminAirlineUpdateName').value.trim();
+  const country = document.getElementById('adminAirlineUpdateCountry').value.trim();
+  const activeChecked = document.getElementById('adminAirlineUpdateActive').checked;
 
-    const payload = { id: id };
-    if (iata) payload.iata = iata;
-    if (name) payload.name = name;
-    if (country) payload.country = country;
-    if (activeChecked) payload.active = true; // only set true (we keep it simple)
+  const payload = { id: id };
+  if (iata) payload.iata = iata;
+  if (name) payload.name = name;
+  if (country) payload.country = country;
+  if (activeChecked) payload.active = true;
 
-    setLoading(true);
-    apiPost('/airline-update', payload)
+  setLoading(true);
+  apiPost('/airline-update', payload)
+    .then(resp => {
+      showToast(resp.message || 'Airline updated.', 'success');
+      setOutput(
+        `<p>Airline updated: <strong>${resp.airline.iata}</strong> — ${resp.airline.name}</p>`,
+        'Admin: Airline Update',
+        ''
+      );
+      hideMap();
+      preloadIataLists();
+    })
+    .catch(setError)
+    .finally(() => setLoading(false));
+}
+
+function adminAirlineDelete() {
+  const id = parseInt(document.getElementById('adminAirlineDeleteId').value, 10);
+  if (!id) {
+    setError(new Error('Airline Delete: id is required.'));
+    return;
+  }
+
+  showConfirm(
+    'Delete this airline and all routes that use it?',
+    () => {
+      setLoading(true);
+      apiPost('/airline-delete', { id: id })
         .then(resp => {
-            showToast(resp.message || "Airline updated.", "success");
-            setOutput(
-                `<p>Airline updated: <strong>${resp.airline.iata}</strong> — ${resp.airline.name}</p>`,
-                "Admin: Airline Update"
-            );
-            preloadIataLists();
+          const a = resp.airline || {};
+          const removed = resp.removed_routes || 0;
+          showToast(
+            resp.message || `Airline ${a.iata || ''} deleted. Removed ${removed} routes.`,
+            'success'
+          );
+          setOutput(
+            `<p>Deleted airline <strong>${a.iata || ''}</strong> — ${a.name || ''}.<br>` +
+            `Removed <strong>${removed}</strong> routes that used this airline.</p>`,
+            'Admin: Airline Delete',
+            ''
+          );
+          hideMap();
+          preloadIataLists();
         })
         .catch(setError)
         .finally(() => setLoading(false));
+    },
+    'Delete airline'
+  );
 }
 
 function adminAirportAdd() {
-    const id = parseInt(document.getElementById("adminAirportAddId").value, 10);
-    const iata = document.getElementById("adminAirportAddIata").value.trim();
-    const name = document.getElementById("adminAirportAddName").value.trim();
-    const city = document.getElementById("adminAirportAddCity").value.trim();
-    const country = document.getElementById("adminAirportAddCountry").value.trim();
-    const latVal = document.getElementById("adminAirportAddLat").value;
-    const lonVal = document.getElementById("adminAirportAddLon").value;
-    const lat = latVal ? parseFloat(latVal) : 0.0;
-    const lon = lonVal ? parseFloat(lonVal) : 0.0;
-
-    if (!id || !iata || !name) {
-        setError(new Error("Airport Add: id, iata, and name are required."));
-        return;
-    }
-    setLoading(true);
-    apiPost('/airport-add', {
-        id: id,
-        iata: iata,
-        name: name,
-        city: city,
-        country: country,
-        latitude: lat,
-        longitude: lon
-    })
-    .then(resp => {
-        showToast(resp.message || "Airport added.", "success");
-        setOutput(
-            `<p>Airport added: <strong>${resp.airport.iata}</strong> — ${resp.airport.name}</p>`,
-            "Admin: Airport Add"
-        );
-        preloadIataLists();
-    })
-    .catch(setError)
-    .finally(() => setLoading(false));
+  const id = parseInt(document.getElementById('adminAirportAddId').value, 10);
+  const iata = document.getElementById('adminAirportAddIata').value.trim();
+  const name = document.getElementById('adminAirportAddName').value.trim();
+  const city = document.getElementById('adminAirportAddCity').value.trim();
+  const country = document.getElementById('adminAirportAddCountry').value.trim();
+  const latVal = document.getElementById('adminAirportAddLat').value;
+  const lonVal = document.getElementById('adminAirportAddLon').value;
+  const lat = latVal ? parseFloat(latVal) : 0.0;
+  const lon = lonVal ? parseFloat(lonVal) : 0.0;
+  if (!id || !iata || !name) {
+    setError(new Error('Airport Add: id, iata, and name are required.'));
+    return;
+  }
+  setLoading(true);
+  apiPost('/airport-add', {
+    id: id,
+    iata: iata,
+    name: name,
+    city: city,
+    country: country,
+    latitude: lat,
+    longitude: lon
+  })
+  .then(resp => {
+    showToast(resp.message || 'Airport added.', 'success');
+    setOutput(
+      `<p>Airport added: <strong>${resp.airport.iata}</strong> — ${resp.airport.name}</p>`,
+      'Admin: Airport Add',
+      ''
+    );
+    hideMap();
+    preloadIataLists();
+  })
+  .catch(setError)
+  .finally(() => setLoading(false));
 }
 
 function adminAirportUpdate() {
-    const id = parseInt(document.getElementById("adminAirportUpdateId").value, 10);
-    if (!id) {
-        setError(new Error("Airport Update: id is required."));
-        return;
-    }
-    const iata = document.getElementById("adminAirportUpdateIata").value.trim();
-    const name = document.getElementById("adminAirportUpdateName").value.trim();
-    const city = document.getElementById("adminAirportUpdateCity").value.trim();
-    const country = document.getElementById("adminAirportUpdateCountry").value.trim();
-    const latVal = document.getElementById("adminAirportUpdateLat").value;
-    const lonVal = document.getElementById("adminAirportUpdateLon").value;
+  const id = parseInt(document.getElementById('adminAirportUpdateId').value, 10);
+  if (!id) {
+    setError(new Error('Airport Update: id is required.'));
+    return;
+  }
+  const iata = document.getElementById('adminAirportUpdateIata').value.trim();
+  const name = document.getElementById('adminAirportUpdateName').value.trim();
+  const city = document.getElementById('adminAirportUpdateCity').value.trim();
+  const country = document.getElementById('adminAirportUpdateCountry').value.trim();
+  const latVal = document.getElementById('adminAirportUpdateLat').value;
+  const lonVal = document.getElementById('adminAirportUpdateLon').value;
 
-    const payload = { id: id };
-    if (iata) payload.iata = iata;
-    if (name) payload.name = name;
-    if (city) payload.city = city;
-    if (country) payload.country = country;
-    if (latVal) payload.latitude = parseFloat(latVal);
-    if (lonVal) payload.longitude = parseFloat(lonVal);
+  const payload = { id: id };
+  if (iata) payload.iata = iata;
+  if (name) payload.name = name;
+  if (city) payload.city = city;
+  if (country) payload.country = country;
+  if (latVal) payload.latitude = parseFloat(latVal);
+  if (lonVal) payload.longitude = parseFloat(lonVal);
 
-    setLoading(true);
-    apiPost('/airport-update', payload)
-        .then(resp => {
-            showToast(resp.message || "Airport updated.", "success");
-            setOutput(
-                `<p>Airport updated: <strong>${resp.airport.iata}</strong> — ${resp.airport.name}</p>`,
-                "Admin: Airport Update"
-            );
-            preloadIataLists();
-        })
-        .catch(setError)
-        .finally(() => setLoading(false));
-}
-
-function adminRouteAdd() {
-    const airlineId = parseInt(document.getElementById("adminRouteAddAirlineId").value, 10);
-    const srcId = parseInt(document.getElementById("adminRouteAddSrcId").value, 10);
-    const dstId = parseInt(document.getElementById("adminRouteAddDstId").value, 10);
-    const stopsVal = document.getElementById("adminRouteAddStops").value;
-    const stops = stopsVal === "" ? 0 : parseInt(stopsVal, 10);
-
-    if (!airlineId || !srcId || !dstId) {
-        setError(new Error("Route Add: airline_id, src_id, and dst_id are required."));
-        return;
-    }
-    setLoading(true);
-    apiPost('/route-add', {
-        airline_id: airlineId,
-        src_id: srcId,
-        dst_id: dstId,
-        stops: stops
-    })
+  setLoading(true);
+  apiPost('/airport-update', payload)
     .then(resp => {
-        showToast(resp.message || "Route added.", "success");
-        setOutput(
-            `<p>Route added: airline_id=${resp.route.airline_id}, src_id=${resp.route.src_id}, dst_id=${resp.route.dst_id}, stops=${resp.route.stops}</p>`,
-            "Admin: Route Add"
-        );
+      showToast(resp.message || 'Airport updated.', 'success');
+      setOutput(
+        `<p>Airport updated: <strong>${resp.airport.iata}</strong> — ${resp.airport.name}</p>`,
+        'Admin: Airport Update',
+        ''
+      );
+      hideMap();
+      preloadIataLists();
     })
     .catch(setError)
     .finally(() => setLoading(false));
 }
 
-/* ---------- MENU HANDLING ---------- */
-document.querySelectorAll('.menu-btn').forEach(btn => {
+function adminAirportDelete() {
+  const id = parseInt(document.getElementById('adminAirportDeleteId').value, 10);
+  if (!id) {
+    setError(new Error('Airport Delete: id is required.'));
+    return;
+  }
+
+  showConfirm(
+    'Delete this airport and all routes that depart from or arrive at it?',
+    () => {
+      setLoading(true);
+      apiPost('/airport-delete', { id: id })
+        .then(resp => {
+          const a = resp.airport || {};
+          const removed = resp.removed_routes || 0;
+          showToast(
+            resp.message || `Airport ${a.iata || ''} deleted. Removed ${removed} routes.`,
+            'success'
+          );
+          setOutput(
+            `<p>Deleted airport <strong>${a.iata || ''}</strong> — ${a.name || ''}.<br>` +
+            `Removed <strong>${removed}</strong> routes involving this airport.</p>`,
+            'Admin: Airport Delete',
+            ''
+          );
+          hideMap();
+          preloadIataLists();
+        })
+        .catch(setError)
+        .finally(() => setLoading(false));
+    },
+    'Delete airport'
+  );
+}
+
+function adminRouteAdd() {
+  const airlineId = parseInt(document.getElementById('adminRouteAddAirlineId').value, 10);
+  const srcId = parseInt(document.getElementById('adminRouteAddSrcId').value, 10);
+  const dstId = parseInt(document.getElementById('adminRouteAddDstId').value, 10);
+  const stopsVal = document.getElementById('adminRouteAddStops').value;
+  const stops = stopsVal === '' ? 0 : parseInt(stopsVal, 10);
+  if (!airlineId || !srcId || !dstId) {
+    setError(new Error('Route Add: airline_id, src_id, and dst_id are required.'));
+    return;
+  }
+  setLoading(true);
+  apiPost('/route-add', {
+    airline_id: airlineId,
+    src_id: srcId,
+    dst_id: dstId,
+    stops: stops
+  })
+  .then(resp => {
+    showToast(resp.message || 'Route added.', 'success');
+    setOutput(
+      `<p>Route added: airline_id=${resp.route.airline_id}, src_id=${resp.route.src_id}, dst_id=${resp.route.dst_id}, stops=${resp.route.stops}</p>`,
+      'Admin: Route Add',
+      ''
+    );
+    hideMap();
+  })
+  .catch(setError)
+  .finally(() => setLoading(false));
+}
+
+function adminRouteUpdate() {
+  const oldAirline = parseInt(document.getElementById('adminRouteUpdateOldAirlineId').value, 10);
+  const oldSrc     = parseInt(document.getElementById('adminRouteUpdateOldSrcId').value, 10);
+  const oldDst     = parseInt(document.getElementById('adminRouteUpdateOldDstId').value, 10);
+
+  if (!oldAirline || !oldSrc || !oldDst) {
+    setError(new Error('Route Update: old airline_id, old src_id, and old dst_id are required.'));
+    return;
+  }
+
+  const newAirlineVal = document.getElementById('adminRouteUpdateNewAirlineId').value;
+  const newSrcVal     = document.getElementById('adminRouteUpdateNewSrcId').value;
+  const newDstVal     = document.getElementById('adminRouteUpdateNewDstId').value;
+  const newStopsVal   = document.getElementById('adminRouteUpdateNewStops').value;
+
+  const payload = {
+    old_airline_id: oldAirline,
+    old_src_id: oldSrc,
+    old_dst_id: oldDst
+  };
+
+  if (newAirlineVal) payload.new_airline_id = parseInt(newAirlineVal, 10);
+  if (newSrcVal)     payload.new_src_id     = parseInt(newSrcVal, 10);
+  if (newDstVal)     payload.new_dst_id     = parseInt(newDstVal, 10);
+  if (newStopsVal !== '') payload.new_stops = parseInt(newStopsVal, 10);
+
+  setLoading(true);
+  apiPost('/route-update', payload)
+    .then(resp => {
+      const r = resp.route || {};
+      showToast(resp.message || 'Route updated.', 'success');
+      setOutput(
+        `<p>Updated route: airline_id=<strong>${r.airline_id}</strong>, ` +
+        `src_id=<strong>${r.src_id}</strong>, dst_id=<strong>${r.dst_id}</strong>, ` +
+        `stops=<strong>${r.stops}</strong>.</p>`,
+        'Admin: Route Update',
+        ''
+      );
+      hideMap();
+    })
+    .catch(setError)
+    .finally(() => setLoading(false));
+}
+
+function adminRouteDelete() {
+  const airlineId = parseInt(document.getElementById('adminRouteDeleteAirlineId').value, 10);
+  const srcId     = parseInt(document.getElementById('adminRouteDeleteSrcId').value, 10);
+  const dstId     = parseInt(document.getElementById('adminRouteDeleteDstId').value, 10);
+  const stopsVal  = document.getElementById('adminRouteDeleteStops').value;
+
+  if (!airlineId || !srcId || !dstId) {
+    setError(new Error('Route Delete: airline_id, src_id, and dst_id are required.'));
+    return;
+  }
+
+  const payload = {
+    airline_id: airlineId,
+    src_id: srcId,
+    dst_id: dstId
+  };
+  if (stopsVal !== '') payload.stops = parseInt(stopsVal, 10);
+
+  showConfirm(
+    'Delete all routes matching this airline + source + destination (and stops, if given)?',
+    () => {
+      setLoading(true);
+      apiPost('/route-delete', payload)
+        .then(resp => {
+          const removed = resp.removed_routes || 0;
+          showToast(resp.message || `Deleted ${removed} route(s).`, 'success');
+          setOutput(
+            `<p>Deleted <strong>${removed}</strong> route(s) matching the given filter.</p>`,
+            'Admin: Route Delete',
+            ''
+          );
+          hideMap();
+        })
+        .catch(setError)
+        .finally(() => setLoading(false));
+    },
+    'Delete route(s)'
+  );
+}
+
+/* ---------- MENU / PAGES ---------- */
+const pageChipLabels = {
+  'airline': 'Lookup Airline',
+  'airport': 'Lookup Airport',
+  'airline-routes': 'Airline Route Report',
+  'airport-routes': 'Airport Route Report',
+  'one-hop': 'One-Hop Route Finder',
+  'all-airlines': 'All Airlines',
+  'all-airports': 'All Airports',
+  'admin': 'Admin / Data Editor'
+};
+
+function openAction(panelName) {
+  // Switch to workspace page
+  document.getElementById('page-menu').classList.remove('active');
+  document.getElementById('page-workspace').classList.add('active');
+
+  // Click the matching top tab so all the logic stays in one place
+  const btn = document.querySelector(`.nav-btn[data-panel="${panelName}"]`);
+  if (btn) {
+    btn.click();
+  }
+}
+
+
+function goBackToMenu() {
+  document.getElementById('page-workspace').classList.remove('active');
+  document.getElementById('page-menu').classList.add('active');
+
+  // Show the sidebar again
+  document.querySelector('.sidebar').classList.remove('hidden');
+
+  clearOutput();
+}
+
+
+function attachSideMenu() {
+  document.querySelectorAll('.nav-btn').forEach(btn => {
     btn.addEventListener('click', () => {
-        const panelName = btn.getAttribute('data-panel');
+      const panelName = btn.getAttribute('data-panel');
 
-        document.querySelectorAll('.menu-btn').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
+      // highlight active tab
+      document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
 
-        document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
-        const panel = document.getElementById('panel-' + panelName);
-        if (panel) panel.classList.add('active');
+      // show correct panel
+      document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+      const panel = document.getElementById('panel-' + panelName);
+      if (panel) panel.classList.add('active');
 
-        document.getElementById("outputTitle").innerText = "Result";
-        const out = document.getElementById("output");
-        out.classList.add("placeholder");
-        out.textContent = "";
+      // update chip + breadcrumb text
+      const chip = document.getElementById('pageChipText');
+      const crumb = document.getElementById('breadcrumbCurrent');
+      if (pageChipLabels[panelName]) {
+        if (chip) chip.textContent = pageChipLabels[panelName];
+        if (crumb) crumb.textContent = pageChipLabels[panelName];
+      }
+
+      clearOutput();
     });
-});
+  });
+}
 
-/* ---------- AUTOCOMPLETE USING DATALISTS ---------- */
+
+
+/* ---------- AUTOCOMPLETE LISTS ---------- */
 function preloadIataLists() {
-    // Airlines
-    api('/airlines-by-iata')
-        .then(data => {
-            const list = data.airlines || [];
-            const dl = document.getElementById('airlineList');
-            dl.innerHTML = "";
-            list.forEach(a => {
-                if (!a.iata) return;
-                const opt = document.createElement('option');
-                opt.value = a.iata;
-                opt.textContent = `${a.iata} — ${a.name || ""}`;
-                dl.appendChild(opt);
-            });
-        })
-        .catch(() => { /* ignore */ });
+  api('/airlines-by-iata')
+    .then(data => {
+      const list = data.airlines || [];
+      const dl = document.getElementById('airlineList');
+      dl.innerHTML = '';
+      list.forEach(a => {
+        if (!a.iata) return;
+        const opt = document.createElement('option');
+        opt.value = a.iata;
+        opt.textContent = `${a.iata} — ${a.name || ''}`;
+        dl.appendChild(opt);
+      });
+    })
+    .catch(() => {});
 
-    // Airports
-    api('/airports-by-iata')
-        .then(data => {
-            const list = data.airports || [];
-            const dl = document.getElementById('airportList');
-            dl.innerHTML = "";
-            list.forEach(a => {
-                if (!a.iata) return;
-                const opt = document.createElement('option');
-                opt.value = a.iata;
-                opt.textContent = `${a.iata} — ${a.name || ""}`;
-                dl.appendChild(opt);
-            });
-        })
-        .catch(() => { /* ignore */ });
+  api('/airports-by-iata')
+    .then(data => {
+      const list = data.airports || [];
+      const dl = document.getElementById('airportList');
+      dl.innerHTML = '';
+      list.forEach(a => {
+        if (!a.iata) return;
+        const opt = document.createElement('option');
+        opt.value = a.iata;
+        opt.textContent = `${a.iata} — ${a.name || ''}`;
+        dl.appendChild(opt);
+      });
+    })
+    .catch(() => {});
 }
 
 /* ---------- RIPPLE EFFECT ---------- */
 function attachRipples() {
-    function addRipple(e) {
-        const btn = e.currentTarget;
-        const rect = btn.getBoundingClientRect();
-        const ripple = document.createElement('span');
-        const size = Math.max(rect.width, rect.height);
-        ripple.className = 'ripple';
-        ripple.style.width = ripple.style.height = size + 'px';
-        const x = e.clientX - rect.left - size / 2;
-        const y = e.clientY - rect.top - size / 2;
-        ripple.style.left = x + 'px';
-        ripple.style.top = y + 'px';
-        btn.appendChild(ripple);
-        setTimeout(() => ripple.remove(), 450);
-    }
-
-    document.querySelectorAll('.btn, .icon-btn').forEach(btn => {
-        btn.addEventListener('click', addRipple);
-    });
+  function addRipple(e) {
+    const btn = e.currentTarget;
+    const rect = btn.getBoundingClientRect();
+    const ripple = document.createElement('span');
+    const size = Math.max(rect.width, rect.height);
+    ripple.className = 'ripple';
+    ripple.style.width = ripple.style.height = size + 'px';
+    const x = e.clientX - rect.left - size / 2;
+    const y = e.clientY - rect.top - size / 2;
+    ripple.style.left = x + 'px';
+    ripple.style.top = y + 'px';
+    btn.appendChild(ripple);
+    setTimeout(() => ripple.remove(), 450);
+  }
+  document.querySelectorAll('.btn, .icon-btn').forEach(btn => {
+    btn.addEventListener('click', addRipple);
+  });
 }
 
-/* ---------- HOVER TILT (OUTPUT CARD) ---------- */
-function initTiltCard() {
-    const card = document.querySelector('.tilt-card');
-    if (!card) return;
+/* ---------- HELPERS ---------- */
+function prefillOneHop(src, dst) {
+  document.getElementById('oneHopSrcInput').value = src;
+  document.getElementById('oneHopDstInput').value = dst;
+}
 
-    function handleMove(e) {
-        const rect = card.getBoundingClientRect();
-        const x = e.clientX - rect.left;
-        const y = e.clientY - rect.top;
-        const midX = rect.width / 2;
-        const midY = rect.height / 2;
-        const rotateX = ((y - midY) / midY) * -4;
-        const rotateY = ((x - midX) / midX) * 4;
-        card.style.transform = `perspective(600px) rotateX(${rotateX}deg) rotateY(${rotateY}deg)`;
-        card.style.boxShadow = '0 18px 40px rgba(15,23,42,0.45)';
-    }
-
-    function reset() {
-        card.style.transform = 'perspective(600px) rotateX(0deg) rotateY(0deg)';
-        card.style.boxShadow = '';
-    }
-
-    card.addEventListener('mousemove', handleMove);
-    card.addEventListener('mouseleave', reset);
+function gotoSection(which) {
+  if (which === 'onehop') {
+    openAction('one-hop');
+  } else {
+    openAction('airline');  // default
+  }
 }
 
 /* ---------- INIT ---------- */
 document.addEventListener('DOMContentLoaded', () => {
-    applyTheme('dark');
-    initParticles();
-    attachRipples();
-    initTiltCard();
-    preloadIataLists();
+  applyTheme('dark');
+  initParticles();
+  attachRipples();
+  attachSideMenu();
+  preloadIataLists();
+  clearOutput();
 
-    // auto-uppercase for all IATA inputs
-    document.querySelectorAll('.iata-input').forEach(inp => {
-        inp.addEventListener('input', () => {
-            inp.value = inp.value.toUpperCase();
-        });
+  document.querySelectorAll('.iata-input').forEach(inp => {
+    inp.addEventListener('input', () => {
+      inp.value = inp.value.toUpperCase();
     });
+  });
+
+  // hook confirm modal button
+  const confirmBtn = document.getElementById('confirmModalConfirmBtn');
+  if (confirmBtn) {
+    confirmBtn.addEventListener('click', () => {
+      const cb = confirmCallback;
+      hideConfirmModal();
+      if (cb) cb();
+    });
+  }
 });
 </script>
 </body>
