@@ -1,0 +1,3824 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Air Travel Database – Source Code</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <style>
+    :root {
+      --bg: #f5f5f7;
+      --panel: #ffffff;
+      --border: #e5e7eb;
+      --muted: #6b7280;
+      --accent: #ec4899;
+      --shadow-soft: 0 18px 40px rgba(15,23,42,0.08);
+    }
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0;
+      padding: 0;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif;
+      background: var(--bg);
+      color: #111827;
+    }
+    body {
+      padding: 16px;
+      display: flex;
+      justify-content: center;
+    }
+    .shell {
+      width: 100%;
+      max-width: 1200px;
+      background: var(--panel);
+      border-radius: 18px;
+      border: 1px solid var(--border);
+      box-shadow: var(--shadow-soft);
+      padding: 18px 20px 20px;
+    }
+    .top-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 8px;
+    }
+    h1 {
+      font-size: 18px;
+      margin: 0;
+    }
+    .subtitle {
+      font-size: 12px;
+      color: var(--muted);
+    }
+    .btn {
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      padding: 5px 11px;
+      font-size: 12px;
+      background: #fff;
+      cursor: pointer;
+    }
+    .btn:hover {
+      background: #f9fafb;
+    }
+    details {
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      margin-top: 10px;
+      padding: 10px 12px;
+      background: #f9fafb;
+    }
+    summary {
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 14px;
+    }
+    pre {
+      margin-top: 10px;
+      padding: 10px;
+      max-height: 450px;
+      overflow: auto;
+      background: #111827;
+      color: #e5e7eb;
+      font-family: SFMono-Regular, ui-monospace, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      font-size: 12px;
+      border-radius: 8px;
+      white-space: pre;
+    }
+    code { white-space: pre; }
+    .hint {
+      margin-top: 8px;
+      font-size: 11px;
+      color: var(--muted);
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <div class="top-bar">
+      <div>
+        <h1>Source Code</h1>
+        <div class="subtitle">C++ backend and HTML frontend for the Air Travel Database</div>
+      </div>
+      <button class="btn" onclick="window.location.href='/static/index.html'">
+        ← Back to App
+      </button>
+    </div>
+
+    <p class="hint">
+      For grading / review: this page shows the full C++ <code>main.cpp</code> used with Crow,
+      and the <code>index.html</code> used as the frontend.
+    </p>
+
+    <details open>
+      <summary>main.cpp</summary>
+      <pre><code>
+<!-- Paste your full main.cpp here -->
+        #include <crow_all.h>   // Make sure crow_all.h is in your include/ folder
+        #include <iostream>
+        #include <fstream>
+        #include <sstream>
+        #include <vector>
+        #include <unordered_map>
+        #include <map>
+        #include <algorithm>
+        #include <string>
+        #include <cstdlib>
+        #include <cctype>
+        #include <utility>
+        #include <cmath>
+
+        // ----------------- Data structures -----------------
+
+        struct Airline {
+            int id;                 // OpenFlights airline ID
+            std::string iata;       // IATA code (may be empty)
+            std::string name;
+            std::string country;
+            bool active;            // from OpenFlights "Y/N"
+        };
+
+        struct Airport {
+            int id;                 // OpenFlights airport ID
+            std::string iata;       // IATA code (may be empty)
+            std::string name;
+            std::string city;
+            std::string country;
+            double latitude;
+            double longitude;
+        };
+
+        struct Route {
+            int airlineId;          // Airline ID (OpenFlights)
+            int srcAirportId;       // Source airport ID
+            int dstAirportId;       // Destination airport ID
+            int stops;              // Number of stops
+        };
+
+        // Global containers
+        std::vector<Airline> airlines;
+        std::vector<Airport> airports;
+        std::vector<Route>   routes;
+
+        // Lookups (by ID and by IATA)
+        std::unordered_map<int, std::size_t> airlineIdToIndex;
+        std::unordered_map<std::string, std::size_t> airlineIataToIndex;
+
+        std::unordered_map<int, std::size_t> airportIdToIndex;
+        std::unordered_map<std::string, std::size_t> airportIataToIndex;
+
+        // Adjacency: routes from a source airport (by source airport ID)
+        std::unordered_map<int, std::vector<std::size_t> > routesFromSrc;
+
+        // ----------------- Utility helpers -----------------
+
+        static std::string trim(const std::string& s)
+        {
+            std::size_t start = 0;
+            while (start < s.size() && std::isspace(static_cast<unsigned char>(s[start]))) {
+                ++start;
+            }
+            std::size_t end = s.size();
+            while (end > start && std::isspace(static_cast<unsigned char>(s[end - 1]))) {
+                --end;
+            }
+            return s.substr(start, end - start);
+        }
+
+        static std::string toUpper(const std::string& s)
+        {
+            std::string out;
+            out.reserve(s.size());
+            for (std::size_t i = 0; i < s.size(); ++i) {
+                out.push_back(static_cast<char>(std::toupper(static_cast<unsigned char>(s[i]))));
+            }
+            return out;
+        }
+
+        // Simple CSV splitter that understands quotes (no escaped quotes).
+        static std::vector<std::string> splitCSVLine(const std::string& line)
+        {
+            std::vector<std::string> result;
+            std::string cur;
+            bool inQuotes = false;
+
+            for (std::size_t i = 0; i < line.size(); ++i) {
+                char c = line[i];
+                if (c == '"') {
+                    inQuotes = !inQuotes;
+                } else if (c == ',' && !inQuotes) {
+                    result.push_back(cur);
+                    cur.clear();
+                } else {
+                    cur.push_back(c);
+                }
+            }
+            result.push_back(cur);
+
+            return result;
+        }
+
+        // ----------------- Loaders -----------------
+
+        // Assumes standard OpenFlights airlines.dat format:
+        // 0:Airline ID,1:Name,2:Alias,3:IATA,4:ICAO,5:Callsign,6:Country,7:Active
+        bool loadAirlines(const std::string& filename)
+        {
+            std::ifstream in(filename.c_str());
+            if (!in) {
+                std::cerr << "Failed to open airlines file: " << filename << std::endl;
+                return false;
+            }
+
+            std::string line;
+            while (std::getline(in, line)) {
+                if (line.empty()) continue;
+                std::vector<std::string> fields = splitCSVLine(line);
+                if (fields.size() < 8) continue;
+
+                Airline a;
+                // ID
+                if (fields[0] == "\\N" || fields[0].empty()) continue;
+                a.id = std::atoi(fields[0].c_str());
+
+                a.name = trim(fields[1]);
+                a.iata = toUpper(trim(fields[3]));
+                a.country = trim(fields[6]);
+                std::string active = trim(fields[7]);
+                a.active = (active == "Y" || active == "y" || active == "1");
+
+                std::size_t index = airlines.size();
+                airlines.push_back(a);
+
+                airlineIdToIndex[a.id] = index;
+                if (!a.iata.empty() && a.iata != "\\N") {
+                    airlineIataToIndex[a.iata] = index;
+                }
+            }
+            std::cerr << "Loaded " << airlines.size() << " airlines" << std::endl;
+            return true;
+        }
+
+        // Assumes standard OpenFlights airports.dat format:
+        // 0:Airport ID,1:Name,2:City,3:Country,4:IATA,5:ICAO,6:Latitude,7:Longitude,...
+        bool loadAirports(const std::string& filename)
+        {
+            std::ifstream in(filename.c_str());
+            if (!in) {
+                std::cerr << "Failed to open airports file: " << filename << std::endl;
+                return false;
+            }
+
+            std::string line;
+            while (std::getline(in, line)) {
+                if (line.empty()) continue;
+                std::vector<std::string> fields = splitCSVLine(line);
+                if (fields.size() < 8) continue;
+
+                Airport a;
+                if (fields[0] == "\\N" || fields[0].empty()) continue;
+                a.id = std::atoi(fields[0].c_str());
+
+                a.name = trim(fields[1]);
+                a.city = trim(fields[2]);
+                a.country = trim(fields[3]);
+                a.iata = toUpper(trim(fields[4]));
+
+                a.latitude = std::atof(fields[6].c_str());
+                a.longitude = std::atof(fields[7].c_str());
+
+                std::size_t index = airports.size();
+                airports.push_back(a);
+
+                airportIdToIndex[a.id] = index;
+                if (!a.iata.empty() && a.iata != "\\N") {
+                    airportIataToIndex[a.iata] = index;
+                }
+            }
+            std::cerr << "Loaded " << airports.size() << " airports" << std::endl;
+            return true;
+        }
+
+        // Assumes standard OpenFlights routes.dat format:
+        // 0:Airline,1:Airline ID,2:Source airport,3:Source airport ID,
+        // 4:Destination airport,5:Destination airport ID,6:Codeshare,
+        // 7:Stops,8:Equipment
+        bool loadRoutes(const std::string& filename)
+        {
+            std::ifstream in(filename.c_str());
+            if (!in) {
+                std::cerr << "Failed to open routes file: " << filename << std::endl;
+                return false;
+            }
+
+            std::string line;
+            while (std::getline(in, line)) {
+                if (line.empty()) continue;
+                std::vector<std::string> fields = splitCSVLine(line);
+                if (fields.size() < 9) continue;
+
+                // Require airline ID, source ID, dest ID
+                if (fields[1] == "\\N" || fields[3] == "\\N" || fields[5] == "\\N") {
+                    continue;
+                }
+
+                Route r;
+                r.airlineId = std::atoi(fields[1].c_str());
+                r.srcAirportId = std::atoi(fields[3].c_str());
+                r.dstAirportId = std::atoi(fields[5].c_str());
+                r.stops = std::atoi(fields[7].c_str());
+
+                std::size_t index = routes.size();
+                routes.push_back(r);
+
+                // Build adjacency
+                routesFromSrc[r.srcAirportId].push_back(index);
+            }
+
+            std::cerr << "Loaded " << routes.size() << " routes" << std::endl;
+            return true;
+        }
+
+        // ----------------- Lookup helpers -----------------
+
+        const Airline* findAirlineByIata(const std::string& iataRaw)
+        {
+            std::string iata = toUpper(iataRaw);
+            std::unordered_map<std::string, std::size_t>::const_iterator it =
+                airlineIataToIndex.find(iata);
+            if (it == airlineIataToIndex.end()) return NULL;
+            return &airlines[it->second];
+        }
+
+        const Airport* findAirportByIata(const std::string& iataRaw)
+        {
+            std::string iata = toUpper(iataRaw);
+            std::unordered_map<std::string, std::size_t>::const_iterator it =
+                airportIataToIndex.find(iata);
+            if (it == airportIataToIndex.end()) return NULL;
+            return &airports[it->second];
+        }
+
+        const Airport* findAirportById(int id)
+        {
+            std::unordered_map<int, std::size_t>::const_iterator it = airportIdToIndex.find(id);
+            if (it == airportIdToIndex.end()) return NULL;
+            return &airports[it->second];
+        }
+
+        const Airline* findAirlineById(int id)
+        {
+            std::unordered_map<int, std::size_t>::const_iterator it = airlineIdToIndex.find(id);
+            if (it == airlineIdToIndex.end()) return NULL;
+            return &airlines[it->second];
+        }
+
+        // ----------------- Report helpers -----------------
+
+        // For a given airline ID, return map: airportId -> routeCount (both directions)
+        std::map<int, int> countRoutesByAirline(int airlineId)
+        {
+            std::map<int, int> counts;
+            for (std::size_t i = 0; i < routes.size(); ++i) {
+                const Route& r = routes[i];
+                if (r.airlineId != airlineId) continue;
+
+                // Count both ends as "served"
+                counts[r.srcAirportId] += 1;
+                counts[r.dstAirportId] += 1;
+            }
+            return counts;
+        }
+
+        // For a given airport ID, return map: airlineId -> routeCount (routes touching this airport)
+        std::map<int, int> countRoutesByAirport(int airportId)
+        {
+            std::map<int, int> counts;
+            for (std::size_t i = 0; i < routes.size(); ++i) {
+                const Route& r = routes[i];
+                if (r.srcAirportId == airportId || r.dstAirportId == airportId) {
+                    counts[r.airlineId] += 1;
+                }
+            }
+            return counts;
+        }
+
+        // ----------------- Distance helpers for one-hop -----------------
+
+        static double deg2rad(double deg) {
+            const double PI = 3.14159265358979323846;
+            return deg * PI / 180.0;
+        }
+
+
+        // Great-circle distance in *air miles* between two airports
+        double greatCircleMiles(const Airport& a, const Airport& b)
+        {
+            // Haversine
+            const double R_km = 6371.0;
+            double lat1 = deg2rad(a.latitude);
+            double lon1 = deg2rad(a.longitude);
+            double lat2 = deg2rad(b.latitude);
+            double lon2 = deg2rad(b.longitude);
+
+            double dlat = lat2 - lat1;
+            double dlon = lon2 - lon1;
+            double sin_dlat = std::sin(dlat / 2.0);
+            double sin_dlon = std::sin(dlon / 2.0);
+
+            double h = sin_dlat * sin_dlat +
+                    std::cos(lat1) * std::cos(lat2) * sin_dlon * sin_dlon;
+
+            double c = 2.0 * std::atan2(std::sqrt(h), std::sqrt(1.0 - h));
+            double dist_km = R_km * c;
+            return dist_km * 0.621371; // km -> miles
+        }
+
+        // Rebuild adjacency list after bulk route changes (delete / update)
+        void rebuildRoutesAdjacency()
+        {
+            routesFromSrc.clear();
+            for (std::size_t i = 0; i < routes.size(); ++i) {
+                const Route& r = routes[i];
+                routesFromSrc[r.srcAirportId].push_back(i);
+            }
+        }
+
+
+        // ----------------- Crow handlers -----------------
+
+        int main(int argc, char* argv[])
+        {
+            // Adjust file paths as needed
+            std::string airlinesFile = "airlines.dat";
+            std::string airportsFile = "airports.dat";
+            std::string routesFile   = "routes.dat";
+
+            if (argc >= 4) {
+                airlinesFile = argv[1];
+                airportsFile = argv[2];
+                routesFile   = argv[3];
+            }
+
+            if (!loadAirlines(airlinesFile) ||
+                !loadAirports(airportsFile) ||
+                !loadRoutes(routesFile)) {
+                std::cerr << "Error loading data files. Exiting." << std::endl;
+                return 1;
+            }
+
+            crow::SimpleApp app;
+
+            // Serve index.html at root
+            CROW_ROUTE(app, "/")
+            ([](){
+                std::ifstream file("static/index.html");
+                if (!file) {
+                    return crow::response(500, "index.html not found in /static");
+                }
+                std::stringstream buffer;
+                buffer << file.rdbuf();
+                crow::response resp(buffer.str());
+                resp.set_header("Content-Type", "text/html; charset=UTF-8");
+                return resp;
+            });
+
+            // Serve static files from /static folder
+            CROW_ROUTE(app, "/static/<string>")
+            ([](const std::string& filename){
+                std::string path = "static/" + filename;
+                std::ifstream file(path, std::ios::binary);
+                if (!file) {
+                    return crow::response(404);
+                }
+
+                std::stringstream buffer;
+                buffer << file.rdbuf();
+
+                crow::response resp(buffer.str());
+
+                // detect extension
+                if (filename.size() >= 5 && filename.substr(filename.size() - 4) == ".png") {
+                    resp.set_header("Content-Type", "image/png");
+                } else if (filename.size() >= 5 && filename.substr(filename.size() - 4) == ".jpg") {
+                    resp.set_header("Content-Type", "image/jpeg");
+                } else if (filename.size() >= 5 && filename.substr(filename.size() - 4) == ".gif") {
+                    resp.set_header("Content-Type", "image/gif");
+                } else if (filename.size() >= 5 && filename.substr(filename.size() - 5) == ".html") {
+                    resp.set_header("Content-Type", "text/html; charset=UTF-8");
+                } else if (filename.size() >= 3 && filename.substr(filename.size() - 3) == ".js") {
+                    resp.set_header("Content-Type", "application/javascript");
+                } else if (filename.size() >= 4 && filename.substr(filename.size() - 4) == ".css") {
+                    resp.set_header("Content-Type", "text/css");
+                } else {
+                    resp.set_header("Content-Type", "application/octet-stream");
+                }
+
+                return resp;
+            });
+
+
+            // /id endpoint
+            CROW_ROUTE(app, "/id")([](){
+                crow::json::wvalue x;
+                x["name"] = "Swum Thukha Zaw";      // <-- your name
+                x["deanza_id"] = "20603503";       // <-- your De Anza ID
+                return crow::response{x};
+            });
+
+            // Given Airline IATA, return full airline record
+            CROW_ROUTE(app, "/airline").methods(crow::HTTPMethod::Get)
+            ([](const crow::request& req){
+                const char* param = req.url_params.get("iata");
+                if (!param) {
+                    return crow::response(400, "Missing 'iata' query parameter");
+                }
+                std::string iata = param;
+                const Airline* a = findAirlineByIata(iata);
+                if (!a) {
+                    return crow::response(404, "Airline not found");
+                }
+
+                crow::json::wvalue j;
+                j["id"] = a->id;
+                j["iata"] = a->iata;
+                j["name"] = a->name;
+                j["country"] = a->country;
+                j["active"] = a->active;
+                return crow::response{j};
+            });
+
+            // Given Airport IATA, return full airport record
+            CROW_ROUTE(app, "/airport").methods(crow::HTTPMethod::Get)
+            ([](const crow::request& req){
+                const char* param = req.url_params.get("iata");
+                if (!param) {
+                    return crow::response(400, "Missing 'iata' query parameter");
+                }
+                std::string iata = param;
+                const Airport* a = findAirportByIata(iata);
+                if (!a) {
+                    return crow::response(404, "Airport not found");
+                }
+
+                crow::json::wvalue j;
+                j["id"] = a->id;
+                j["iata"] = a->iata;
+                j["name"] = a->name;
+                j["city"] = a->city;
+                j["country"] = a->country;
+                j["latitude"] = a->latitude;
+                j["longitude"] = a->longitude;
+                return crow::response{j};
+            });
+
+            // Given Airline IATA, return airline name and list of airports it serves with #routes
+            CROW_ROUTE(app, "/airline-routes").methods(crow::HTTPMethod::Get)
+            ([](const crow::request& req){
+                const char* param = req.url_params.get("iata");
+                if (!param) {
+                    return crow::response(400, "Missing 'iata' query parameter");
+                }
+                std::string iata = param;
+                const Airline* airline = findAirlineByIata(iata);
+                if (!airline) {
+                    return crow::response(404, "Airline not found");
+                }
+
+                std::map<int, int> counts = countRoutesByAirline(airline->id);
+
+                struct AirportCount {
+                    int airportId;
+                    int count;
+                };
+                std::vector<AirportCount> v;
+                for (std::map<int,int>::const_iterator it = counts.begin();
+                    it != counts.end(); ++it) {
+                    AirportCount ac;
+                    ac.airportId = it->first;
+                    ac.count = it->second;
+                    v.push_back(ac);
+                }
+                std::sort(v.begin(), v.end(),
+                    [](const AirportCount& a, const AirportCount& b){
+                        return a.count > b.count;
+                    });
+
+                crow::json::wvalue j;
+                j["airline"]["id"] = airline->id;
+                j["airline"]["iata"] = airline->iata;
+                j["airline"]["name"] = airline->name;
+
+                j["airports"] = crow::json::wvalue::list();
+                auto& arr = j["airports"];
+
+                for (std::size_t i = 0; i < v.size(); ++i) {
+                    int airportId = v[i].airportId;
+                    int count = v[i].count;
+                    std::unordered_map<int,std::size_t>::const_iterator itIndex =
+                        airportIdToIndex.find(airportId);
+                    if (itIndex == airportIdToIndex.end()) continue;
+                    const Airport& ap = airports[itIndex->second];
+
+                    crow::json::wvalue item;
+                    item["airport_id"] = ap.id;
+                    item["iata"] = ap.iata;
+                    item["name"] = ap.name;
+                    item["city"] = ap.city;
+                    item["country"] = ap.country;
+                    item["route_count"] = count;
+
+                    arr[i] = std::move(item);
+                }
+
+                return crow::response{j};
+            });
+
+            // Given Airport IATA, return airport name and list of airlines that fly there with #routes
+            CROW_ROUTE(app, "/airport-routes").methods(crow::HTTPMethod::Get)
+            ([](const crow::request& req){
+                const char* param = req.url_params.get("iata");
+                if (!param) {
+                    return crow::response(400, "Missing 'iata' query parameter");
+                }
+                std::string iata = param;
+                const Airport* airport = findAirportByIata(iata);
+                if (!airport) {
+                    return crow::response(404, "Airport not found");
+                }
+
+                std::map<int, int> counts = countRoutesByAirport(airport->id);
+
+                struct AirlineCount {
+                    int airlineId;
+                    int count;
+                };
+                std::vector<AirlineCount> v;
+                for (std::map<int,int>::const_iterator it = counts.begin();
+                    it != counts.end(); ++it) {
+                    AirlineCount ac;
+                    ac.airlineId = it->first;
+                    ac.count = it->second;
+                    v.push_back(ac);
+                }
+                std::sort(v.begin(), v.end(),
+                    [](const AirlineCount& a, const AirlineCount& b){
+                        return a.count > b.count;
+                    });
+
+                crow::json::wvalue j;
+                j["airport"]["id"] = airport->id;
+                j["airport"]["iata"] = airport->iata;
+                j["airport"]["name"] = airport->name;
+                j["airport"]["city"] = airport->city;
+                j["airport"]["country"] = airport->country;
+
+                j["airlines"] = crow::json::wvalue::list();
+                auto& arr = j["airlines"];
+
+                for (std::size_t i = 0; i < v.size(); ++i) {
+                    int airlineId = v[i].airlineId;
+                    int count = v[i].count;
+                    std::unordered_map<int,std::size_t>::const_iterator itIndex =
+                        airlineIdToIndex.find(airlineId);
+                    if (itIndex == airlineIdToIndex.end()) continue;
+                    const Airline& al = airlines[itIndex->second];
+
+                    crow::json::wvalue item;
+                    item["airline_id"] = al.id;
+                    item["iata"] = al.iata;
+                    item["name"] = al.name;
+                    item["country"] = al.country;
+                    item["route_count"] = count;
+
+                    arr[i] = std::move(item);
+                }
+
+                return crow::response{j};
+            });
+
+            // Return all airlines ordered by IATA code
+            CROW_ROUTE(app, "/airlines-by-iata").methods(crow::HTTPMethod::Get)
+            ([](const crow::request&){
+                std::vector<const Airline*> v;
+                v.reserve(airlines.size());
+                for (std::size_t i = 0; i < airlines.size(); ++i) {
+                    v.push_back(&airlines[i]);
+                }
+
+                std::sort(v.begin(), v.end(),
+                    [](const Airline* a, const Airline* b){
+                        return a->iata < b->iata;
+                    });
+
+                crow::json::wvalue j;
+                j["airlines"] = crow::json::wvalue::list();
+                auto& arr = j["airlines"];
+
+                for (std::size_t i = 0; i < v.size(); ++i) {
+                    const Airline* al = v[i];
+                    crow::json::wvalue item;
+                    item["id"] = al->id;
+                    item["iata"] = al->iata;
+                    item["name"] = al->name;
+                    item["country"] = al->country;
+                    item["active"] = al->active;
+                    arr[i] = std::move(item);
+                }
+
+                return crow::response{j};
+            });
+
+            // Return all airports ordered by IATA code
+            CROW_ROUTE(app, "/airports-by-iata").methods(crow::HTTPMethod::Get)
+            ([](const crow::request&){
+                std::vector<const Airport*> v;
+                v.reserve(airports.size());
+                for (std::size_t i = 0; i < airports.size(); ++i) {
+                    v.push_back(&airports[i]);
+                }
+
+                std::sort(v.begin(), v.end(),
+                    [](const Airport* a, const Airport* b){
+                        return a->iata < b->iata;
+                    });
+
+                crow::json::wvalue j;
+                j["airports"] = crow::json::wvalue::list();
+                auto& arr = j["airports"];
+
+                for (std::size_t i = 0; i < v.size(); ++i) {
+                    const Airport* ap = v[i];
+                    crow::json::wvalue item;
+                    item["id"] = ap->id;
+                    item["iata"] = ap->iata;
+                    item["name"] = ap->name;
+                    item["city"] = ap->city;
+                    item["country"] = ap->country;
+                    item["latitude"] = ap->latitude;
+                    item["longitude"] = ap->longitude;
+                    arr[i] = std::move(item);
+                }
+
+                return crow::response{j};
+            });
+
+            // Add a new airline
+            CROW_ROUTE(app, "/airline-add").methods(crow::HTTPMethod::Post)
+            ([](const crow::request& req){
+                auto body = crow::json::load(req.body);
+                if (!body) {
+                    return crow::response(400, "Invalid JSON");
+                }
+
+                if (!body.has("id") || !body.has("iata") || !body.has("name")) {
+                    return crow::response(400, "Missing required fields: id, iata, name");
+                }
+
+                int id = body["id"].i();
+                std::string iataRaw = body["iata"].s();
+                std::string name = body["name"].s();
+                std::string country = body.has("country") ? std::string(body["country"].s()) : "";
+                bool active = body.has("active") ? body["active"].b() : true;
+
+                if (airlineIdToIndex.find(id) != airlineIdToIndex.end()) {
+                    return crow::response(400, "Airline with that ID already exists");
+                }
+
+                Airline a;
+                a.id = id;
+                a.iata = toUpper(trim(iataRaw));
+                a.name = trim(name);
+                a.country = trim(country);
+                a.active = active;
+
+                std::size_t index = airlines.size();
+                airlines.push_back(a);
+
+                airlineIdToIndex[a.id] = index;
+                if (!a.iata.empty() && a.iata != "\\N") {
+                    airlineIataToIndex[a.iata] = index;
+                }
+
+                crow::json::wvalue resp;
+                resp["status"] = "ok";
+                resp["message"] = "Airline added in memory";
+                resp["airline"]["id"] = a.id;
+                resp["airline"]["iata"] = a.iata;
+                resp["airline"]["name"] = a.name;
+                resp["airline"]["country"] = a.country;
+                resp["airline"]["active"] = a.active;
+
+                return crow::response{resp};
+            });
+
+            // Update an existing airline (by ID)
+            CROW_ROUTE(app, "/airline-update").methods(crow::HTTPMethod::Post)
+            ([](const crow::request& req){
+                auto body = crow::json::load(req.body);
+                if (!body) {
+                    return crow::response(400, "Invalid JSON");
+                }
+                if (!body.has("id")) {
+                    return crow::response(400, "Missing required field: id");
+                }
+
+                int id = body["id"].i();
+                auto it = airlineIdToIndex.find(id);
+                if (it == airlineIdToIndex.end()) {
+                    return crow::response(404, "Airline ID not found");
+                }
+
+                std::size_t index = it->second;
+                Airline& a = airlines[index];
+
+                // Keep old IATA to update map if changed
+                std::string oldIata = a.iata;
+
+                if (body.has("iata")) {
+                    a.iata = toUpper(trim(body["iata"].s()));
+                }
+                if (body.has("name")) {
+                    a.name = trim(body["name"].s());
+                }
+                if (body.has("country")) {
+                    a.country = trim(body["country"].s());
+                }
+                if (body.has("active")) {
+                    a.active = body["active"].b();
+                }
+
+                // Fix IATA map if changed
+                if (a.iata != oldIata) {
+                    if (!oldIata.empty()) {
+                        airlineIataToIndex.erase(oldIata);
+                    }
+                    if (!a.iata.empty() && a.iata != "\\N") {
+                        airlineIataToIndex[a.iata] = index;
+                    }
+                }
+
+                crow::json::wvalue resp;
+                resp["status"] = "ok";
+                resp["message"] = "Airline updated in memory";
+                resp["airline"]["id"] = a.id;
+                resp["airline"]["iata"] = a.iata;
+                resp["airline"]["name"] = a.name;
+                resp["airline"]["country"] = a.country;
+                resp["airline"]["active"] = a.active;
+
+                return crow::response{resp};
+            });
+
+            // Delete an airline and remove all its routes
+            CROW_ROUTE(app, "/airline-delete").methods(crow::HTTPMethod::Post)
+            ([](const crow::request& req){
+                auto body = crow::json::load(req.body);
+                if (!body) {
+                    return crow::response(400, "Invalid JSON");
+                }
+                if (!body.has("id")) {
+                    return crow::response(400, "Missing required field: id");
+                }
+
+                int id = body["id"].i();
+
+                auto it = airlineIdToIndex.find(id);
+                if (it == airlineIdToIndex.end()) {
+                    return crow::response(404, "Airline ID not found");
+                }
+                std::size_t idx = it->second;
+                Airline toDelete = airlines[idx];
+
+                // 1) Remove airline from vector
+                airlines.erase(airlines.begin() + static_cast<long>(idx));
+
+                // 2) Rebuild airline index maps (indices shifted)
+                airlineIdToIndex.clear();
+                airlineIataToIndex.clear();
+                for (std::size_t i = 0; i < airlines.size(); ++i) {
+                    const Airline& a = airlines[i];
+                    airlineIdToIndex[a.id] = i;
+                    if (!a.iata.empty() && a.iata != "\\N") {
+                        airlineIataToIndex[a.iata] = i;
+                    }
+                }
+
+                // 3) Remove routes for this airline and rebuild routesFromSrc
+                int removedRoutes = 0;
+                std::vector<Route> newRoutes;
+                newRoutes.reserve(routes.size());
+
+                for (std::size_t i = 0; i < routes.size(); ++i) {
+                    const Route& r = routes[i];
+                    if (r.airlineId == id) {
+                        ++removedRoutes;
+                        continue;
+                    }
+                    newRoutes.push_back(r);
+                }
+                routes.swap(newRoutes);
+                rebuildRoutesAdjacency();
+
+                crow::json::wvalue resp;
+                resp["status"] = "ok";
+                resp["message"] = "Airline deleted and routes removed in memory";
+                resp["airline"]["id"] = toDelete.id;
+                resp["airline"]["iata"] = toDelete.iata;
+                resp["airline"]["name"] = toDelete.name;
+                resp["removed_routes"] = removedRoutes;
+
+                return crow::response{resp};
+            });
+
+            // Add a new airport
+            CROW_ROUTE(app, "/airport-add").methods(crow::HTTPMethod::Post)
+            ([](const crow::request& req){
+                auto body = crow::json::load(req.body);
+                if (!body) {
+                    return crow::response(400, "Invalid JSON");
+                }
+
+                if (!body.has("id") || !body.has("iata") || !body.has("name")) {
+                    return crow::response(400, "Missing required fields: id, iata, name");
+                }
+
+                int id = body["id"].i();
+                std::string iataRaw = body["iata"].s();
+                std::string name = body["name"].s();
+                std::string city;
+                if (body.has("city")) {
+                    city = std::string(body["city"].s());
+                } else {
+                    city = "";
+                }
+
+                std::string country;
+                if (body.has("country")) {
+                    country = std::string(body["country"].s());
+                } else {
+                    country = "";
+                }
+
+                double lat = body.has("latitude") ? body["latitude"].d() : 0.0;
+                double lon = body.has("longitude") ? body["longitude"].d() : 0.0;
+
+                if (airportIdToIndex.find(id) != airportIdToIndex.end()) {
+                    return crow::response(400, "Airport with that ID already exists");
+                }
+
+                Airport a;
+                a.id = id;
+                a.iata = toUpper(trim(iataRaw));
+                a.name = trim(name);
+                a.city = trim(city);
+                a.country = trim(country);
+                a.latitude = lat;
+                a.longitude = lon;
+
+                std::size_t index = airports.size();
+                airports.push_back(a);
+
+                airportIdToIndex[a.id] = index;
+                if (!a.iata.empty() && a.iata != "\\N") {
+                    airportIataToIndex[a.iata] = index;
+                }
+
+                crow::json::wvalue resp;
+                resp["status"] = "ok";
+                resp["message"] = "Airport added in memory";
+                resp["airport"]["id"] = a.id;
+                resp["airport"]["iata"] = a.iata;
+                resp["airport"]["name"] = a.name;
+                resp["airport"]["city"] = a.city;
+                resp["airport"]["country"] = a.country;
+                resp["airport"]["latitude"] = a.latitude;
+                resp["airport"]["longitude"] = a.longitude;
+
+                return crow::response{resp};
+            });
+
+            // Add a new airport
+            CROW_ROUTE(app, "/airport-add").methods(crow::HTTPMethod::Post)
+            ([](const crow::request& req){
+                auto body = crow::json::load(req.body);
+                if (!body) {
+                    return crow::response(400, "Invalid JSON");
+                }
+
+                if (!body.has("id") || !body.has("iata") || !body.has("name")) {
+                    return crow::response(400, "Missing required fields: id, iata, name");
+                }
+
+                int id = body["id"].i();
+                std::string iataRaw = body["iata"].s();
+                std::string name = body["name"].s();
+                std::string city = body.has("city") ? std::string(body["city"].s()) : "";
+                std::string country = body.has("country") ? std::string(body["country"].s()) : "";
+                double lat = body.has("latitude") ? body["latitude"].d() : 0.0;
+                double lon = body.has("longitude") ? body["longitude"].d() : 0.0;
+
+                if (airportIdToIndex.find(id) != airportIdToIndex.end()) {
+                    return crow::response(400, "Airport with that ID already exists");
+                }
+
+                Airport a;
+                a.id = id;
+                a.iata = toUpper(trim(iataRaw));
+                a.name = trim(name);
+                a.city = trim(city);
+                a.country = trim(country);
+                a.latitude = lat;
+                a.longitude = lon;
+
+                std::size_t index = airports.size();
+                airports.push_back(a);
+
+                airportIdToIndex[a.id] = index;
+                if (!a.iata.empty() && a.iata != "\\N") {
+                    airportIataToIndex[a.iata] = index;
+                }
+
+                crow::json::wvalue resp;
+                resp["status"] = "ok";
+                resp["message"] = "Airport added in memory";
+                resp["airport"]["id"] = a.id;
+                resp["airport"]["iata"] = a.iata;
+                resp["airport"]["name"] = a.name;
+                resp["airport"]["city"] = a.city;
+                resp["airport"]["country"] = a.country;
+                resp["airport"]["latitude"] = a.latitude;
+                resp["airport"]["longitude"] = a.longitude;
+
+                return crow::response{resp};
+            });
+
+            // Update an existing airport (by ID)
+            CROW_ROUTE(app, "/airport-update").methods(crow::HTTPMethod::Post)
+            ([](const crow::request& req){
+                auto body = crow::json::load(req.body);
+                if (!body) {
+                    return crow::response(400, "Invalid JSON");
+                }
+                if (!body.has("id")) {
+                    return crow::response(400, "Missing required field: id");
+                }
+
+                int id = body["id"].i();
+                auto it = airportIdToIndex.find(id);
+                if (it == airportIdToIndex.end()) {
+                    return crow::response(404, "Airport ID not found");
+                }
+
+                std::size_t index = it->second;
+                Airport& a = airports[index];
+                std::string oldIata = a.iata;
+
+                if (body.has("iata")) {
+                    a.iata = toUpper(trim(body["iata"].s()));
+                }
+                if (body.has("name")) {
+                    a.name = trim(body["name"].s());
+                }
+                if (body.has("city")) {
+                    a.city = trim(body["city"].s());
+                }
+                if (body.has("country")) {
+                    a.country = trim(body["country"].s());
+                }
+                if (body.has("latitude")) {
+                    a.latitude = body["latitude"].d();
+                }
+                if (body.has("longitude")) {
+                    a.longitude = body["longitude"].d();
+                }
+
+                if (a.iata != oldIata) {
+                    if (!oldIata.empty()) {
+                        airportIataToIndex.erase(oldIata);
+                    }
+                    if (!a.iata.empty() && a.iata != "\\N") {
+                        airportIataToIndex[a.iata] = index;
+                    }
+                }
+
+                crow::json::wvalue resp;
+                resp["status"] = "ok";
+                resp["message"] = "Airport updated in memory";
+                resp["airport"]["id"] = a.id;
+                resp["airport"]["iata"] = a.iata;
+                resp["airport"]["name"] = a.name;
+                resp["airport"]["city"] = a.city;
+                resp["airport"]["country"] = a.country;
+                resp["airport"]["latitude"] = a.latitude;
+                resp["airport"]["longitude"] = a.longitude;
+
+                return crow::response{resp};
+            });
+
+            // Delete an airport and all routes that use it
+            CROW_ROUTE(app, "/airport-delete").methods(crow::HTTPMethod::Post)
+            ([](const crow::request& req){
+                auto body = crow::json::load(req.body);
+                if (!body) {
+                    return crow::response(400, "Invalid JSON");
+                }
+                if (!body.has("id")) {
+                    return crow::response(400, "Missing required field: id");
+                }
+
+                int id = body["id"].i();
+
+                auto it = airportIdToIndex.find(id);
+                if (it == airportIdToIndex.end()) {
+                    return crow::response(404, "Airport ID not found");
+                }
+                std::size_t idx = it->second;
+                Airport toDelete = airports[idx];
+
+                // Remove airport
+                airports.erase(airports.begin() + static_cast<long>(idx));
+
+                // Rebuild airport maps
+                airportIdToIndex.clear();
+                airportIataToIndex.clear();
+                for (std::size_t i = 0; i < airports.size(); ++i) {
+                    const Airport& a = airports[i];
+                    airportIdToIndex[a.id] = i;
+                    if (!a.iata.empty() && a.iata != "\\N") {
+                        airportIataToIndex[a.iata] = i;
+                    }
+                }
+
+                // Remove routes touching this airport
+                int removedRoutes = 0;
+                std::vector<Route> newRoutes;
+                newRoutes.reserve(routes.size());
+
+                for (std::size_t i = 0; i < routes.size(); ++i) {
+                    const Route& r = routes[i];
+                    if (r.srcAirportId == id || r.dstAirportId == id) {
+                        ++removedRoutes;
+                        continue;
+                    }
+                    newRoutes.push_back(r);
+                }
+                routes.swap(newRoutes);
+                rebuildRoutesAdjacency();
+
+                crow::json::wvalue resp;
+                resp["status"] = "ok";
+                resp["message"] = "Airport deleted and its routes removed in memory";
+                resp["airport"]["id"] = toDelete.id;
+                resp["airport"]["iata"] = toDelete.iata;
+                resp["airport"]["name"] = toDelete.name;
+                resp["removed_routes"] = removedRoutes;
+
+                return crow::response{resp};
+            });
+
+            // Add a new route
+            CROW_ROUTE(app, "/route-add").methods(crow::HTTPMethod::Post)
+            ([](const crow::request& req){
+                auto body = crow::json::load(req.body);
+                if (!body) {
+                    return crow::response(400, "Invalid JSON");
+                }
+
+                if (!body.has("airline_id") || !body.has("src_id") || !body.has("dst_id")) {
+                    return crow::response(400, "Missing required fields: airline_id, src_id, dst_id");
+                }
+
+                int airlineId = body["airline_id"].i();
+                int srcId = body["src_id"].i();
+                int dstId = body["dst_id"].i();
+                int stops = body.has("stops") ? body["stops"].i() : 0;
+
+                if (airlineIdToIndex.find(airlineId) == airlineIdToIndex.end()) {
+                    return crow::response(400, "Unknown airline_id");
+                }
+                if (airportIdToIndex.find(srcId) == airportIdToIndex.end()) {
+                    return crow::response(400, "Unknown src_id");
+                }
+                if (airportIdToIndex.find(dstId) == airportIdToIndex.end()) {
+                    return crow::response(400, "Unknown dst_id");
+                }
+
+                Route r;
+                r.airlineId = airlineId;
+                r.srcAirportId = srcId;
+                r.dstAirportId = dstId;
+                r.stops = stops;
+
+                std::size_t index = routes.size();
+                routes.push_back(r);
+                routesFromSrc[srcId].push_back(index);
+
+                crow::json::wvalue resp;
+                resp["status"] = "ok";
+                resp["message"] = "Route added in memory";
+                resp["route"]["airline_id"] = airlineId;
+                resp["route"]["src_id"] = srcId;
+                resp["route"]["dst_id"] = dstId;
+                resp["route"]["stops"] = stops;
+
+                return crow::response{resp};
+            });
+
+            // Update an existing route (identified by old airline + src + dst)
+            // This updates the first matching route.
+            CROW_ROUTE(app, "/route-update").methods(crow::HTTPMethod::Post)
+            ([](const crow::request& req){
+                auto body = crow::json::load(req.body);
+                if (!body) {
+                    return crow::response(400, "Invalid JSON");
+                }
+
+                if (!body.has("old_airline_id") || !body.has("old_src_id") || !body.has("old_dst_id")) {
+                    return crow::response(400, "Missing required fields: old_airline_id, old_src_id, old_dst_id");
+                }
+
+                int oldAirline = body["old_airline_id"].i();
+                int oldSrc     = body["old_src_id"].i();
+                int oldDst     = body["old_dst_id"].i();
+
+                int newAirline = body.has("new_airline_id") ? body["new_airline_id"].i() : oldAirline;
+                int newSrc     = body.has("new_src_id")     ? body["new_src_id"].i()     : oldSrc;
+                int newDst     = body.has("new_dst_id")     ? body["new_dst_id"].i()     : oldDst;
+                int newStops   = body.has("new_stops")      ? body["new_stops"].i()      : 0;
+
+                // Validate new IDs
+                if (airlineIdToIndex.find(newAirline) == airlineIdToIndex.end()) {
+                    return crow::response(400, "Unknown new_airline_id");
+                }
+                if (airportIdToIndex.find(newSrc) == airportIdToIndex.end()) {
+                    return crow::response(400, "Unknown new_src_id");
+                }
+                if (airportIdToIndex.find(newDst) == airportIdToIndex.end()) {
+                    return crow::response(400, "Unknown new_dst_id");
+                }
+
+                bool found = false;
+                for (std::size_t i = 0; i < routes.size(); ++i) {
+                    Route& r = routes[i];
+                    if (r.airlineId == oldAirline &&
+                        r.srcAirportId == oldSrc &&
+                        r.dstAirportId == oldDst) {
+                        r.airlineId    = newAirline;
+                        r.srcAirportId = newSrc;
+                        r.dstAirportId = newDst;
+                        r.stops        = newStops;
+                        found = true;
+                        break; // update first match
+                    }
+                }
+
+                if (!found) {
+                    return crow::response(404, "Matching route not found");
+                }
+
+                rebuildRoutesAdjacency();
+
+                crow::json::wvalue resp;
+                resp["status"] = "ok";
+                resp["message"] = "Route updated in memory";
+                resp["route"]["airline_id"] = newAirline;
+                resp["route"]["src_id"]     = newSrc;
+                resp["route"]["dst_id"]     = newDst;
+                resp["route"]["stops"]      = newStops;
+
+                return crow::response{resp};
+            });
+
+            // Delete route(s) that match airline + src + dst (+ optional stops)
+            CROW_ROUTE(app, "/route-delete").methods(crow::HTTPMethod::Post)
+            ([](const crow::request& req){
+                auto body = crow::json::load(req.body);
+                if (!body) {
+                    return crow::response(400, "Invalid JSON");
+                }
+
+                if (!body.has("airline_id") || !body.has("src_id") || !body.has("dst_id")) {
+                    return crow::response(400, "Missing required fields: airline_id, src_id, dst_id");
+                }
+
+                int airlineId = body["airline_id"].i();
+                int srcId     = body["src_id"].i();
+                int dstId     = body["dst_id"].i();
+                bool hasStopsFilter = body.has("stops");
+                int stopsFilter     = hasStopsFilter ? body["stops"].i() : 0;
+
+                int removed = 0;
+                std::vector<Route> newRoutes;
+                newRoutes.reserve(routes.size());
+
+                for (std::size_t i = 0; i < routes.size(); ++i) {
+                    const Route& r = routes[i];
+                    bool match = (r.airlineId == airlineId &&
+                                r.srcAirportId == srcId &&
+                                r.dstAirportId == dstId);
+                    if (match && hasStopsFilter) {
+                        match = (r.stops == stopsFilter);
+                    }
+                    if (match) {
+                        ++removed;
+                        continue;
+                    }
+                    newRoutes.push_back(r);
+                }
+
+                if (!removed) {
+                    return crow::response(404, "No matching routes found to delete");
+                }
+
+                routes.swap(newRoutes);
+                rebuildRoutesAdjacency();
+
+                crow::json::wvalue resp;
+                resp["status"] = "ok";
+                resp["message"] = "Route(s) deleted in memory";
+                resp["removed_routes"] = removed;
+                resp["filter"]["airline_id"] = airlineId;
+                resp["filter"]["src_id"]     = srcId;
+                resp["filter"]["dst_id"]     = dstId;
+                if (hasStopsFilter) {
+                    resp["filter"]["stops"] = stopsFilter;
+                }
+
+                return crow::response{resp};
+            });
+
+
+            // ----------- NEW: One-hop route report (S -> X -> D, 0 stops) -----------
+
+            CROW_ROUTE(app, "/one-hop").methods(crow::HTTPMethod::Get)
+            ([](const crow::request& req){
+                const char* srcParam = req.url_params.get("src");
+                const char* dstParam = req.url_params.get("dst");
+                if (!srcParam || !dstParam) {
+                    return crow::response(400, "Missing 'src' or 'dst' query parameter");
+                }
+
+                std::string srcIata = srcParam;
+                std::string dstIata = dstParam;
+
+                const Airport* srcAirport = findAirportByIata(srcIata);
+                const Airport* dstAirport = findAirportByIata(dstIata);
+
+                if (!srcAirport) {
+                    return crow::response(404, "Source airport not found");
+                }
+                if (!dstAirport) {
+                    return crow::response(404, "Destination airport not found");
+                }
+
+                int srcId = srcAirport->id;
+                int dstId = dstAirport->id;
+
+                struct OneHopRoute {
+                    int viaAirportId;
+                    double leg1Miles;
+                    double leg2Miles;
+                    double totalMiles;
+                    const Airline* airline1;
+                    const Airline* airline2;
+                };
+
+                std::vector<OneHopRoute> results;
+
+                // First leg: srcId -> mid
+                std::unordered_map<int, std::vector<std::size_t> >::const_iterator itAdj =
+                    routesFromSrc.find(srcId);
+                if (itAdj != routesFromSrc.end()) {
+                    const std::vector<std::size_t>& outRoutes = itAdj->second;
+                    for (std::size_t i = 0; i < outRoutes.size(); ++i) {
+                        const Route& r1 = routes[outRoutes[i]];
+                        if (r1.stops != 0) continue; // must be 0 stops
+
+                        int midId = r1.dstAirportId;
+                        const Airport* midAirport = findAirportById(midId);
+                        if (!midAirport) continue;
+
+                        // Second leg: mid -> dstId
+                        std::unordered_map<int, std::vector<std::size_t> >::const_iterator itAdj2 =
+                            routesFromSrc.find(midId);
+                        if (itAdj2 == routesFromSrc.end()) continue;
+
+                        const std::vector<std::size_t>& outRoutes2 = itAdj2->second;
+                        for (std::size_t j = 0; j < outRoutes2.size(); ++j) {
+                            const Route& r2 = routes[outRoutes2[j]];
+                            if (r2.stops != 0) continue;
+                            if (r2.dstAirportId != dstId) continue;
+
+                            const Airline* al1 = findAirlineById(r1.airlineId);
+                            const Airline* al2 = findAirlineById(r2.airlineId);
+
+                            double leg1 = greatCircleMiles(*srcAirport, *midAirport);
+                            double leg2 = greatCircleMiles(*midAirport, *dstAirport);
+
+                            OneHopRoute oh;
+                            oh.viaAirportId = midId;
+                            oh.leg1Miles = leg1;
+                            oh.leg2Miles = leg2;
+                            oh.totalMiles = leg1 + leg2;
+                            oh.airline1 = al1;
+                            oh.airline2 = al2;
+
+                            results.push_back(oh);
+                        }
+                    }
+                }
+
+                std::sort(results.begin(), results.end(),
+                        [](const OneHopRoute& a, const OneHopRoute& b){
+                            return a.totalMiles < b.totalMiles;
+                        });
+
+                crow::json::wvalue j;
+                // source & destination info
+                j["source"]["id"] = srcAirport->id;
+                j["source"]["iata"] = srcAirport->iata;
+                j["source"]["name"] = srcAirport->name;
+                j["source"]["city"] = srcAirport->city;
+                j["source"]["country"] = srcAirport->country;
+
+                j["destination"]["id"] = dstAirport->id;
+                j["destination"]["iata"] = dstAirport->iata;
+                j["destination"]["name"] = dstAirport->name;
+                j["destination"]["city"] = dstAirport->city;
+                j["destination"]["country"] = dstAirport->country;
+
+                j["routes"] = crow::json::wvalue::list();
+                auto& arr = j["routes"];
+
+                for (std::size_t i = 0; i < results.size(); ++i) {
+                    const OneHopRoute& oh = results[i];
+                    const Airport* midAirport = findAirportById(oh.viaAirportId);
+                    if (!midAirport) continue;
+
+                    crow::json::wvalue item;
+                    item["via"]["id"] = midAirport->id;
+                    item["via"]["iata"] = midAirport->iata;
+                    item["via"]["name"] = midAirport->name;
+                    item["via"]["city"] = midAirport->city;
+                    item["via"]["country"] = midAirport->country;
+
+                    item["leg1_miles"] = oh.leg1Miles;
+                    item["leg2_miles"] = oh.leg2Miles;
+                    item["total_miles"] = oh.totalMiles;
+
+                    if (oh.airline1) {
+                        item["airline1"]["id"] = oh.airline1->id;
+                        item["airline1"]["iata"] = oh.airline1->iata;
+                        item["airline1"]["name"] = oh.airline1->name;
+                    }
+                    if (oh.airline2) {
+                        item["airline2"]["id"] = oh.airline2->id;
+                        item["airline2"]["iata"] = oh.airline2->iata;
+                        item["airline2"]["name"] = oh.airline2->name;
+                    }
+
+                    arr[i] = std::move(item);
+                }
+
+                return crow::response{j};
+            });
+
+            // ----------- NEW: Get Code (returns main.cpp contents) -----------
+
+            CROW_ROUTE(app, "/get-code")
+            ([](){
+                std::ifstream in("main.cpp");
+                if (!in) {
+                    return crow::response(500, "Could not open main.cpp");
+                }
+                std::stringstream buffer;
+                buffer << in.rdbuf();
+                crow::json::wvalue j;
+                j["filename"] = "main.cpp";
+                j["code"] = buffer.str();
+                return crow::response{j};
+            });
+
+            // Start server on port 8080
+            app.port(8080).multithreaded().run();
+
+            return 0;
+        }
+      </code></pre>
+    </details>
+
+    <details>
+      <summary>index.html</summary>
+      <pre><code>
+<!-- Paste your full index.html here (this UI file) -->
+        <!DOCTYPE html>
+        <html lang="en">
+        <head>
+        <meta charset="UTF-8" />
+        <title>Air Travel Database – CIS22C Honors</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <style>
+            :root {
+            --bg: #f5f5f7;
+            --panel: #ffffff;
+            --panel-soft: #f9fafb;
+            --panel-line: #e5e7eb;
+            --panel-strong: #ffffff;
+            --accent: #ec4899;          /* magenta-ish like the reference */
+            --accent-soft: #fdf2f8;
+            --accent-strong: #be185d;
+            --danger: #dc2626;
+            --muted: #6b7280;
+            --text: #111827;
+            --border-subtle: #e5e7eb;
+            --shadow-soft: 0 18px 40px rgba(15,23,42,0.08);
+            --code-bg: #111827;
+            }
+
+            * {
+            box-sizing: border-box;
+            }
+
+            html, body {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            }
+
+            body {
+            display: flex;
+            align-items: stretch;
+            justify-content: center;
+            /* smaller border around the page */
+            padding: 8px;
+            background: var(--bg);
+            }
+
+            /* Optional canvas (currently unused, but kept in case you want it later) */
+            #bgCanvas {
+            display: none;
+            }
+
+            /* APP SHELL ---------------------------------------------------- */
+
+            .app-shell {
+            width: 100%;
+            max-width: 1440px;          /* fills most of the screen */
+            min-height: calc(100vh - 16px); /* stretch vertically with small margin */
+            background: var(--panel);
+            border-radius: 18px;        /* a bit flatter */
+            box-shadow: var(--shadow-soft);
+            border: 1px solid var(--border-subtle);
+            padding: 20px 24px 22px;
+            }
+
+            /* HEADER -------------------------------------------------------- */
+
+            .app-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid var(--border-subtle);
+            padding-bottom: 12px;
+            margin-bottom: 16px;
+            }
+
+            .brand-block {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            }
+
+            .brand-line-1 {
+            letter-spacing: 0.28em;
+            text-transform: uppercase;
+            font-size: 11px;
+            color: var(--accent-strong);
+            }
+
+            .brand-line-2 {
+            font-size: 20px;
+            font-weight: 600;
+            }
+
+            .brand-line-3 {
+            font-size: 11px;
+            color: var(--muted);
+            }
+
+            .header-right {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 12px;
+            }
+
+            .chip {
+            border-radius: 999px;
+            padding: 4px 10px;
+            border: 1px solid var(--border-subtle);
+            background: var(--panel-soft);
+            font-size: 11px;
+            color: var(--muted);
+            white-space: nowrap;
+            }
+
+            .id-chip {
+            border-radius: 999px;
+            padding: 5px 12px;
+            border: 1px dashed var(--border-subtle);
+            background: #f9fafb;
+            max-width: 260px;
+            font-size: 11px;
+            color: var(--muted);
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            }
+
+            .id-chip strong {
+            color: var(--accent-strong);
+            }
+
+            .btn {
+            border-radius: 999px;
+            border: 1px solid var(--border-subtle);
+            padding: 6px 12px;
+            font-size: 12px;
+            cursor: pointer;
+            background: #ffffff;
+            color: var(--text);
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            transition: background 0.12s ease, border-color 0.12s ease, transform 0.08s ease;
+            }
+
+            .btn:hover {
+            background: #f3f4f6;
+            border-color: #d1d5db;
+            transform: translateY(-1px);
+            }
+
+            .btn-primary {
+            background: var(--accent);
+            color: #ffffff;
+            border-color: var(--accent);
+            }
+
+            .btn-primary:hover {
+            background: var(--accent-strong);
+            border-color: var(--accent-strong);
+            }
+
+            .btn-ghost {
+            background: transparent;
+            }
+
+            .btn-sm {
+            padding: 5px 11px;
+            font-size: 12px;
+            }
+
+            /* APP BODY / PAGES --------------------------------------------- */
+
+            .app-body {
+            margin-top: 4px;
+            }
+
+            .page-container {
+            position: relative;
+            min-height: 440px;
+            }
+
+            .page {
+            display: none;
+            }
+
+            .page.active {
+            display: block;
+            }
+
+            /* MENU PAGE ---------------------------------------------------- */
+
+            .menu-layout {
+            display: grid;
+            grid-template-columns: minmax(0, 1.1fr) minmax(0, 1.2fr);
+            gap: 24px;
+            align-items: stretch;
+            }
+
+            .menu-hero {
+            padding: 20px 22px;
+            border-radius: 18px;
+            border: 1px solid var(--border-subtle);
+            background: #ffffff;
+            display: grid;
+            grid-template-columns: minmax(0, 1.4fr) 180px;
+            gap: 16px;
+            align-items: center;
+            }
+
+            .menu-hero-text h2 {
+            margin: 0 0 6px;
+            font-size: 22px;
+            }
+
+            .menu-hero-text p {
+            margin: 0 0 14px;
+            font-size: 13px;
+            color: var(--muted);
+            max-width: 480px;
+            }
+
+            .menu-metadata {
+            font-size: 12px;
+            color: var(--muted);
+            margin-bottom: 12px;
+            }
+
+            .menu-tag-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            font-size: 11px;
+            }
+
+            .menu-tag {
+            border-radius: 999px;
+            padding: 3px 8px;
+            border: 1px solid var(--border-subtle);
+            background: var(--panel-soft);
+            }
+
+            .menu-cta-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 14px;
+            margin-bottom: 10px;
+            }
+
+            .menu-tip {
+            font-size: 11px;
+            color: var(--muted);
+            margin-top: 4px;
+            }
+
+            .snoopy-card {
+            border-radius: 18px;
+            border: 1px solid var(--border-subtle);
+            background: #f9fafb;
+            padding: 10px;
+            text-align: center;
+            font-size: 11px;
+            color: var(--muted);
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            align-items: center;
+            justify-content: center;
+            }
+
+            .snoopy-card img {
+            max-width: 140px;
+            width: 100%;
+            display: block;
+            border-radius: 12px;
+            background: #ffffff;
+            border: 1px solid var(--border-subtle);
+            }
+
+            .menu-grid {
+            padding: 18px 18px 16px;
+            border-radius: 18px;
+            border: 1px solid var(--border-subtle);
+            background: #ffffff;
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 10px;
+            }
+
+            .tile {
+            border-radius: 14px;
+            border: 1px solid var(--border-subtle);
+            padding: 10px 11px 11px;
+            background: #ffffff;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            transition: background 0.12s ease, border-color 0.12s ease, transform 0.08s ease;
+            font-size: 12px;
+            }
+
+            .tile:hover {
+            background: #f9fafb;
+            border-color: #d1d5db;
+            transform: translateY(-1px);
+            }
+
+            .tile-label {
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.12em;
+            color: var(--muted);
+            }
+
+            .tile-title {
+            font-size: 14px;
+            font-weight: 600;
+            }
+
+            .tile-desc {
+            font-size: 12px;
+            color: var(--muted);
+            }
+
+            .tile-tag {
+            font-size: 11px;
+            margin-top: 2px;
+            color: var(--muted);
+            }
+
+            /* WORKSPACE PAGE ----------------------------------------------- */
+
+            .workspace-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid var(--border-subtle);
+            }
+
+            .workspace-header-left {
+            display: flex;
+            flex-direction: column;
+            gap: 3px;
+            }
+
+            .page-chip {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.16em;
+            color: var(--muted);
+            }
+
+            .page-title {
+            font-size: 18px;
+            font-weight: 600;
+            }
+
+            .page-subtitle {
+            font-size: 12px;
+            color: var(--muted);
+            }
+
+            .workspace-header-right {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            }
+
+            .breadcrumb {
+            font-size: 12px;
+            color: var(--muted);
+            margin-bottom: 6px;
+            }
+
+            .breadcrumb span {
+            margin: 0 4px;
+            }
+
+            .breadcrumb button {
+            background: none;
+            border: none;
+            padding: 0;
+            font-size: 12px;
+            color: var(--accent-strong);
+            cursor: pointer;
+            }
+
+            .workspace-tabs {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 14px;
+            }
+
+            .workspace-tab {
+            border-radius: 999px;
+            padding: 6px 12px;
+            font-size: 12px;
+            border: 1px solid var(--border-subtle);
+            background: #ffffff;
+            cursor: pointer;
+            color: var(--muted);
+            transition: background 0.12s ease, border-color 0.12s ease, color 0.12s ease, transform 0.08s ease;
+            }
+
+            .workspace-tab:hover {
+            background: #f9fafb;
+            border-color: #d1d5db;
+            transform: translateY(-1px);
+            }
+
+            .workspace-tab.active {
+            background: var(--accent);
+            border-color: var(--accent);
+            color: #ffffff;
+            }
+
+            .workspace-main {
+            border-radius: 18px;
+            border: 1px solid var(--border-subtle);
+            background: #ffffff;
+            padding: 16px 18px 16px;
+            display: grid;
+            grid-template-columns: minmax(0, 1.05fr) minmax(0, 1.25fr);
+            gap: 18px;
+            }
+
+            .forms-pane {
+            border-right: 1px solid var(--border-subtle);
+            padding-right: 16px;
+            }
+
+            .output-pane {
+            padding-left: 4px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            }
+
+            .output-header {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            }
+
+            .output-title {
+            font-size: 14px;
+            font-weight: 600;
+            }
+
+            .output-subtitle {
+            font-size: 12px;
+            color: var(--muted);
+            }
+
+            .output-body {
+            margin-top: 6px;
+            border-radius: 12px;
+            padding: 10px;
+            background: var(--panel-soft);
+            border: 1px dashed var(--border-subtle);
+            font-size: 12px;
+            flex: 1;
+            min-height: 220px;
+            overflow: auto;
+            }
+
+            .output-body.placeholder {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--muted);
+            text-align: center;
+            }
+
+            /* PANELS ------------------------------------------------------- */
+
+            .panel {
+            display: none;
+            }
+
+            .panel.active {
+            display: block;
+            }
+
+            .panel-header h3 {
+            margin: 0;
+            font-size: 15px;
+            }
+
+            .panel-header p {
+            margin: 3px 0 10px;
+            font-size: 12px;
+            color: var(--muted);
+            }
+
+            .field-group {
+            margin-top: 8px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            }
+
+            .field {
+            display: flex;
+            flex-direction: column;
+            gap: 3px;
+            }
+
+            .field label {
+            font-size: 11px;
+            color: var(--muted);
+            }
+
+            .field input {
+            border-radius: 999px;
+            border: 1px solid var(--border-subtle);
+            padding: 7px 10px;
+            font-size: 12px;
+            background: #ffffff;
+            color: var(--text);
+            outline: none;
+            transition: border-color 0.12s ease, box-shadow 0.12s ease;
+            }
+
+            .field input:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 1px var(--accent-soft);
+            }
+
+            .input-row {
+            display: flex;
+            gap: 8px;
+            }
+
+            .input-row .field {
+            flex: 1;
+            }
+
+            .panel-actions {
+            margin-top: 8px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            }
+
+            .hint-row {
+            margin-top: 6px;
+            font-size: 11px;
+            color: var(--muted);
+            }
+
+            .section-title {
+            font-size: 12px;
+            font-weight: 600;
+            margin-top: 12px;
+            border-top: 1px solid var(--border-subtle);
+            padding-top: 8px;
+            }
+
+            /* TABLES ------------------------------------------------------- */
+
+            table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 12px;
+            background: #ffffff;
+            }
+
+            th, td {
+            padding: 6px 8px;
+            border-bottom: 1px solid var(--border-subtle);
+            text-align: left;
+            white-space: nowrap;
+            }
+
+            th {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: var(--muted);
+            background: #f9fafb;
+            cursor: pointer;
+            }
+
+            tr:nth-child(even) td {
+            background: #fcfcfd;
+            }
+
+            /* SUMMARY CARD ------------------------------------------------- */
+
+            .summary-card {
+            margin-top: 10px;
+            padding: 9px 10px;
+            border-radius: 12px;
+            background: var(--accent-soft);
+            border: 1px solid #f9a8d4;
+            }
+
+            .summary-title {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.12em;
+            color: var(--accent-strong);
+            margin-bottom: 4px;
+            }
+
+            .summary-body {
+            font-size: 12px;
+            color: var(--text);
+            }
+
+            /* STATUS BADGES ------------------------------------------------ */
+
+            .status-badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 2px 7px;
+            border-radius: 999px;
+            font-size: 11px;
+            border: 1px solid var(--border-subtle);
+            }
+
+            .status-active {
+            background: #ecfdf3;
+            border-color: #bbf7d0;
+            color: #16a34a;
+            }
+
+            .status-inactive {
+            background: #f3f4f6;
+            border-color: var(--border-subtle);
+            color: var(--muted);
+            }
+
+            /* TOASTS & LOADER ---------------------------------------------- */
+
+            .toast-container {
+            position: fixed;
+            right: 18px;
+            bottom: 18px;
+            z-index: 40;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            }
+
+            .toast {
+            min-width: 230px;
+            max-width: 340px;
+            border-radius: 12px;
+            padding: 8px 10px;
+            font-size: 12px;
+            display: flex;
+            justify-content: space-between;
+            gap: 8px;
+            align-items: center;
+            background: #111827;
+            color: #f9fafb;
+            border: 1px solid #111827;
+            box-shadow: 0 18px 40px rgba(15,23,42,0.4);
+            opacity: 0;
+            transform: translateY(6px);
+            transition: opacity 0.2s ease, transform 0.2s ease;
+            }
+
+            .toast-success {
+            background: #16a34a;
+            border-color: #15803d;
+            }
+
+            .toast-error {
+            background: #b91c1c;
+            border-color: #991b1b;
+            }
+
+            .toast.show {
+            opacity: 1;
+            transform: translateY(0);
+            }
+
+            .toast-message {
+            flex: 1;
+            }
+
+            .toast-close {
+            border: none;
+            background: transparent;
+            color: #fee2e2;
+            cursor: pointer;
+            font-size: 14px;
+            padding: 0 0 0 4px;
+            }
+
+            #loadingOverlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(249,250,251,0.8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 30;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.15s ease;
+            }
+
+            #loadingOverlay.show {
+            opacity: 1;
+            pointer-events: auto;
+            }
+
+            .loader {
+            width: 40px;
+            height: 40px;
+            border-radius: 999px;
+            border: 3px solid #e5e7eb;
+            border-top-color: var(--accent);
+            animation: spin 0.7s linear infinite;
+            }
+
+            @keyframes spin {
+            to { transform: rotate(360deg); }
+            }
+
+            /* MODAL -------------------------------------------------------- */
+
+            .modal {
+            position: fixed;
+            inset: 0;
+            background: rgba(15,23,42,0.45);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 50;
+            }
+
+            .modal.show {
+            display: flex;
+            }
+
+            .modal-dialog {
+            width: 100%;
+            max-width: 360px;
+            border-radius: 18px;
+            background: #ffffff;
+            border: 1px solid var(--border-subtle);
+            box-shadow: 0 26px 60px rgba(15,23,42,0.35);
+            padding: 14px 16px 14px;
+            }
+
+            .modal-header {
+            display: flex;
+            justify-content: space-between;
+            gap: 10px;
+            align-items: center;
+            margin-bottom: 4px;
+            }
+
+            .modal-title {
+            font-size: 15px;
+            font-weight: 600;
+            }
+
+            .modal-close {
+            border: none;
+            background: transparent;
+            cursor: pointer;
+            font-size: 18px;
+            color: var(--muted);
+            }
+
+            .modal-body {
+            font-size: 12px;
+            margin-top: 4px;
+            }
+
+            .info-grid {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+            gap: 6px 12px;
+            font-size: 12px;
+            }
+
+            .info-item {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            }
+
+            .info-label {
+            font-size: 11px;
+            color: var(--muted);
+            }
+
+            .info-value {
+            font-size: 12px;
+            }
+
+            /* RESPONSIVE --------------------------------------------------- */
+
+            @media (max-width: 960px) {
+            body {
+                padding: 16px;
+            }
+            .menu-layout {
+                grid-template-columns: minmax(0, 1fr);
+            }
+            .menu-hero {
+                grid-template-columns: minmax(0, 1fr);
+            }
+            .workspace-main {
+                grid-template-columns: minmax(0, 1fr);
+            }
+            .forms-pane {
+                border-right: none;
+                border-bottom: 1px solid var(--border-subtle);
+                padding-right: 0;
+                padding-bottom: 12px;
+                margin-bottom: 12px;
+            }
+            .output-pane {
+                padding-left: 0;
+            }
+            .app-shell {
+                padding: 16px;
+                border-radius: 18px;
+            }
+            .app-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 8px;
+            }
+            .header-right {
+                align-self: stretch;
+                justify-content: space-between;
+            }
+            }
+        </style>
+        </head>
+        <body>
+
+        <canvas id="bgCanvas"></canvas>
+
+        <div class="app-shell">
+        <header class="app-header">
+            <div class="brand-block">
+            <div class="brand-line-1">CIS 22C HONORS</div>
+            <div class="brand-line-2">Air Travel Database</div>
+            <div class="brand-line-3">C++ · Crow · airline / airport / route data</div>
+            </div>
+            <div class="header-right">
+                <div class="chip">Powered by a custom C++ backend on port 8080</div>
+
+                <button class="btn btn-sm" onclick="loadId()">
+                    <span>👤</span><span>ID</span>
+                </button>
+
+                <button class="btn btn-sm btn-ghost" onclick="window.location.href='/static/source.html'">
+                    View Code
+                </button>
+
+                <div class="id-chip">
+                    <span id="headerIdText">
+                    <strong>Student ID</strong> · click “ID” to load from backend
+                    </span>
+                </div>
+            </div>
+        </header>
+
+        <div class="app-body">
+            <div class="page-container">
+            <!-- MENU PAGE ------------------------------------------------>
+            <section id="page-menu" class="page active">
+                <div class="menu-layout">
+                <div class="menu-hero">
+                    <div class="menu-hero-text">
+                    <h2>Hello.</h2>
+                    <p>
+                        Welcome to your air-travel playground. Use this web app to look up airlines
+                        and airports, explore routes, and edit in-memory data from your C++ backend.
+                    </p>
+                    <div class="menu-metadata">
+                        Today at the dashboard · backed by OpenFlights data.
+                    </div>
+                    <div class="menu-tag-row">
+                        <span class="menu-tag">C++ · Crow · JSON</span>
+                        <span class="menu-tag">Hash tables · vectors</span>
+                        <span class="menu-tag">Airlines · airports · routes</span>
+                    </div>
+                    <div class="menu-cta-row">
+                        <button class="btn btn-primary" onclick="openAction('airline')">Start with Airline Lookup</button>
+                        <button class="btn btn-ghost" onclick="openAction('one-hop')">Try One-Hop Route Finder</button>
+                    </div>
+                    <div class="menu-tip">
+                        Tip: pick an action here, then use the tabs inside the workspace to switch tools.
+                    </div>
+                    </div>
+                    <div class="snoopy-card">
+                    <img src="/static/snoopy-plane.gif" alt="Flying dog" />
+                    <div>Flying into your C++ backend ✈️</div>
+                    </div>
+                </div>
+
+                <div class="menu-grid">
+                    <div class="tile" onclick="openAction('airline')">
+                    <div class="tile-label">Lookup</div>
+                    <div class="tile-title">Airline by IATA</div>
+                    <div class="tile-desc">Fetch airline metadata using a 2-letter code.</div>
+                    <div class="tile-tag">Example: /airline?iata=AA</div>
+                    </div>
+                    <div class="tile" onclick="openAction('airport')">
+                    <div class="tile-label">Lookup</div>
+                    <div class="tile-title">Airport by IATA</div>
+                    <div class="tile-desc">See location, city, and coordinates.</div>
+                    <div class="tile-tag">Example: /airport?iata=SFO</div>
+                    </div>
+                    <div class="tile" onclick="openAction('one-hop')">
+                    <div class="tile-label">Planner</div>
+                    <div class="tile-title">One-Hop Route Finder</div>
+                    <div class="tile-desc">Find S → X → D routes where each leg has 0 stops.</div>
+                    <div class="tile-tag">Shortest 2-leg routes</div>
+                    </div>
+                    <div class="tile" onclick="openAction('airline-routes')">
+                    <div class="tile-label">Report</div>
+                    <div class="tile-title">Airline Route Report</div>
+                    <div class="tile-desc">List airports served by a given airline.</div>
+                    <div class="tile-tag">/airline-routes?iata=AA</div>
+                    </div>
+                    <div class="tile" onclick="openAction('airport-routes')">
+                    <div class="tile-label">Report</div>
+                    <div class="tile-title">Airport Route Report</div>
+                    <div class="tile-desc">List airlines that serve an airport.</div>
+                    <div class="tile-tag">/airport-routes?iata=SFO</div>
+                    </div>
+                    <div class="tile" onclick="openAction('admin')">
+                    <div class="tile-label">Admin</div>
+                    <div class="tile-title">In-Memory Data Editor</div>
+                    <div class="tile-desc">Add, update, or delete airlines, airports, and routes.</div>
+                    <div class="tile-tag">Honors feature · no file write-back</div>
+                    </div>
+                </div>
+                </div>
+            </section>
+
+            <!-- WORKSPACE PAGE ------------------------------------------->
+            <section id="page-workspace" class="page">
+                <div class="workspace-header">
+                <div class="workspace-header-left">
+                    <div class="page-chip" id="pageChipText">Lookup Airline</div>
+                    <div class="page-title">Action Workspace</div>
+                    <div class="page-subtitle">
+                    Use the tabs to switch actions. Forms are on the left, results on the right.
+                    </div>
+                </div>
+                <div class="workspace-header-right">
+                    <button class="btn btn-sm btn-ghost" onclick="goBackToMenu()">← Back to Menu</button>
+                </div>
+                </div>
+
+                <div class="breadcrumb">
+                <button onclick="goBackToMenu()">Menu</button>
+                <span>›</span>
+                <span id="breadcrumbLabel">Lookup Airline</span>
+                </div>
+
+                <div class="workspace-tabs">
+                <button class="workspace-tab active" data-panel="airline">Lookup Airline</button>
+                <button class="workspace-tab" data-panel="airport">Lookup Airport</button>
+                <button class="workspace-tab" data-panel="airline-routes">Airline Route Report</button>
+                <button class="workspace-tab" data-panel="airport-routes">Airport Route Report</button>
+                <button class="workspace-tab" data-panel="one-hop">One-Hop Routes</button>
+                <button class="workspace-tab" data-panel="all-airlines">All Airlines</button>
+                <button class="workspace-tab" data-panel="all-airports">All Airports</button>
+                <button class="workspace-tab" data-panel="admin">Admin / Data Editor</button>
+                </div>
+
+                <div class="workspace-main">
+                <!-- FORMS / PANELS --------------------------------------->
+                <div class="forms-pane">
+                    <!-- Airline lookup -->
+                    <section id="panel-airline" class="panel active">
+                    <div class="panel-header">
+                        <h3>Lookup Airline</h3>
+                        <p>Enter a 2-letter airline IATA code (e.g. AA, DL, UA).</p>
+                    </div>
+                    <div class="field-group">
+                        <div class="field">
+                        <label for="airlineInput">Airline IATA</label>
+                        <input id="airlineInput" class="iata-input" list="airlineList" placeholder="AA, DL, UA…" />
+                        </div>
+                    </div>
+                    <div class="panel-actions">
+                        <button class="btn btn-sm btn-primary" onclick="lookupAirline()">Search</button>
+                        <button class="btn btn-sm btn-ghost" onclick="clearOutput()">Clear Result</button>
+                    </div>
+                    <div class="hint-row">
+                        Hint: start typing to use autocomplete loaded from
+                        <code style="background:var(--code-bg);color:#e5e7eb;padding:1px 4px;border-radius:4px;">/airlines-by-iata</code>.
+                    </div>
+                    </section>
+
+                    <!-- Airport lookup -->
+                    <section id="panel-airport" class="panel">
+                    <div class="panel-header">
+                        <h3>Lookup Airport</h3>
+                        <p>Enter a 3-letter airport IATA code (e.g. SFO, LAX, JFK).</p>
+                    </div>
+                    <div class="field-group">
+                        <div class="field">
+                        <label for="airportInput">Airport IATA</label>
+                        <input id="airportInput" class="iata-input" list="airportList" placeholder="SFO, LAX, JFK…" />
+                        </div>
+                    </div>
+                    <div class="panel-actions">
+                        <button class="btn btn-sm btn-primary" onclick="lookupAirport()">Search</button>
+                        <button class="btn btn-sm btn-ghost" onclick="clearOutput()">Clear Result</button>
+                    </div>
+                    <div class="hint-row">
+                        Try: SFO (San Francisco), LAX (Los Angeles), JFK (New York).
+                    </div>
+                    </section>
+
+                    <!-- Airline route report -->
+                    <section id="panel-airline-routes" class="panel">
+                    <div class="panel-header">
+                        <h3>Airline Route Report</h3>
+                        <p>List all airports served by a particular airline.</p>
+                    </div>
+                    <div class="field-group">
+                        <div class="field">
+                        <label for="airlineRouteInput">Airline IATA</label>
+                        <input id="airlineRouteInput" class="iata-input" list="airlineList" placeholder="AA, DL, UA…" />
+                        </div>
+                    </div>
+                    <div class="panel-actions">
+                        <button class="btn btn-sm btn-primary" onclick="airlineRoutes()">Run Report</button>
+                        <button class="btn btn-sm btn-ghost" onclick="clearOutput()">Clear Result</button>
+                    </div>
+                    </section>
+
+                    <!-- Airport route report -->
+                    <section id="panel-airport-routes" class="panel">
+                    <div class="panel-header">
+                        <h3>Airport Route Report</h3>
+                        <p>List all airlines that serve a particular airport.</p>
+                    </div>
+                    <div class="field-group">
+                        <div class="field">
+                        <label for="airportRouteInput">Airport IATA</label>
+                        <input id="airportRouteInput" class="iata-input" list="airportList" placeholder="SFO, LAX, JFK…" />
+                        </div>
+                    </div>
+                    <div class="panel-actions">
+                        <button class="btn btn-sm btn-primary" onclick="airportRoutes()">Run Report</button>
+                        <button class="btn btn-sm btn-ghost" onclick="clearOutput()">Clear Result</button>
+                    </div>
+                    </section>
+
+                    <!-- One-hop routes -->
+                    <section id="panel-one-hop" class="panel">
+                    <div class="panel-header">
+                        <h3>One-Hop Route Finder</h3>
+                        <p>Find all one-hop routes S → X → D, where each leg has 0 stops.</p>
+                    </div>
+                    <div class="field-group">
+                        <div class="input-row">
+                        <div class="field">
+                            <label for="oneHopSrcInput">Source IATA</label>
+                            <input id="oneHopSrcInput" class="iata-input" list="airportList" placeholder="SFO" />
+                        </div>
+                        <div class="field">
+                            <label for="oneHopDstInput">Destination IATA</label>
+                            <input id="oneHopDstInput" class="iata-input" list="airportList" placeholder="JFK" />
+                        </div>
+                        </div>
+                    </div>
+                    <div class="panel-actions">
+                        <button class="btn btn-sm btn-primary" onclick="oneHop()">Find Routes</button>
+                        <button class="btn btn-sm btn-ghost" onclick="clearOutput()">Clear Result</button>
+                        <button class="btn btn-sm btn-ghost" onclick="prefillOneHop('SFO','JFK')">Example: SFO → JFK</button>
+                        <button class="btn btn-sm btn-ghost" onclick="prefillOneHop('MIA','BOS')">Example: MIA → BOS</button>
+                    </div>
+                    </section>
+
+                    <!-- All airlines -->
+                    <section id="panel-all-airlines" class="panel">
+                    <div class="panel-header">
+                        <h3>All Airlines</h3>
+                        <p>Show all airlines currently loaded, sorted by IATA.</p>
+                    </div>
+                    <div class="panel-actions">
+                        <button class="btn btn-sm btn-primary" onclick="allAirlines()">Load Airlines</button>
+                        <button class="btn btn-sm btn-ghost" onclick="clearOutput()">Clear Result</button>
+                    </div>
+                    </section>
+
+                    <!-- All airports -->
+                    <section id="panel-all-airports" class="panel">
+                    <div class="panel-header">
+                        <h3>All Airports</h3>
+                        <p>Show all airports currently loaded, sorted by IATA.</p>
+                    </div>
+                    <div class="panel-actions">
+                        <button class="btn btn-sm btn-primary" onclick="allAirports()">Load Airports</button>
+                        <button class="btn btn-sm btn-ghost" onclick="clearOutput()">Clear Result</button>
+                    </div>
+                    </section>
+
+                    <!-- Admin panel -->
+                    <section id="panel-admin" class="panel">
+                    <div class="panel-header">
+                        <h3>Admin / Data Editor</h3>
+                        <p>Modify airlines, airports, and routes in memory (no file write-back).</p>
+                    </div>
+
+                    <!-- AIRLINE ADD / UPDATE / DELETE --------------------->
+                    <div class="section-title">Airline – Add</div>
+                    <div class="field-group">
+                        <div class="input-row">
+                        <div class="field">
+                            <label for="adminAirlineAddId">ID</label>
+                            <input id="adminAirlineAddId" type="number" />
+                        </div>
+                        <div class="field">
+                            <label for="adminAirlineAddIata">IATA</label>
+                            <input id="adminAirlineAddIata" class="iata-input" />
+                        </div>
+                        </div>
+                        <div class="field">
+                        <label for="adminAirlineAddName">Name</label>
+                        <input id="adminAirlineAddName" />
+                        </div>
+                        <div class="field">
+                        <label for="adminAirlineAddCountry">Country</label>
+                        <input id="adminAirlineAddCountry" />
+                        </div>
+                        <div class="field">
+                        <label><input type="checkbox" id="adminAirlineAddActive" /> Active</label>
+                        </div>
+                        <div class="panel-actions">
+                        <button class="btn btn-sm btn-primary" onclick="adminAirlineAdd()">Add Airline</button>
+                        </div>
+                    </div>
+
+                    <div class="section-title">Airline – Update</div>
+                    <div class="field-group">
+                        <div class="field">
+                        <label for="adminAirlineUpdateId">Existing ID (required)</label>
+                        <input id="adminAirlineUpdateId" type="number" />
+                        </div>
+                        <div class="input-row">
+                        <div class="field">
+                            <label for="adminAirlineUpdateIata">New IATA (optional)</label>
+                            <input id="adminAirlineUpdateIata" class="iata-input" />
+                        </div>
+                        <div class="field">
+                            <label for="adminAirlineUpdateName">New Name (optional)</label>
+                            <input id="adminAirlineUpdateName" />
+                        </div>
+                        </div>
+                        <div class="field">
+                        <label for="adminAirlineUpdateCountry">New Country (optional)</label>
+                        <input id="adminAirlineUpdateCountry" />
+                        </div>
+                        <div class="field">
+                        <label><input type="checkbox" id="adminAirlineUpdateActive" /> Set Active = true</label>
+                        </div>
+                        <div class="panel-actions">
+                        <button class="btn btn-sm btn-primary" onclick="adminAirlineUpdate()">Update Airline</button>
+                        </div>
+                    </div>
+
+                    <div class="section-title">Airline – Delete</div>
+                    <div class="field-group">
+                        <div class="field">
+                        <label for="adminAirlineDeleteId">ID to delete (routes using this airline will be removed)</label>
+                        <input id="adminAirlineDeleteId" type="number" />
+                        </div>
+                        <div class="panel-actions">
+                        <button class="btn btn-sm" style="background:#fee2e2;border-color:#fecaca;color:#b91c1c;"
+                                onclick="adminAirlineDelete()">Delete Airline</button>
+                        </div>
+                    </div>
+
+                    <!-- AIRPORT ADD / UPDATE / DELETE --------------------->
+                    <div class="section-title">Airport – Add</div>
+                    <div class="field-group">
+                        <div class="input-row">
+                        <div class="field">
+                            <label for="adminAirportAddId">ID</label>
+                            <input id="adminAirportAddId" type="number" />
+                        </div>
+                        <div class="field">
+                            <label for="adminAirportAddIata">IATA</label>
+                            <input id="adminAirportAddIata" class="iata-input" />
+                        </div>
+                        </div>
+                        <div class="field">
+                        <label for="adminAirportAddName">Name</label>
+                        <input id="adminAirportAddName" />
+                        </div>
+                        <div class="input-row">
+                        <div class="field">
+                            <label for="adminAirportAddCity">City</label>
+                            <input id="adminAirportAddCity" />
+                        </div>
+                        <div class="field">
+                            <label for="adminAirportAddCountry">Country</label>
+                            <input id="adminAirportAddCountry" />
+                        </div>
+                        </div>
+                        <div class="input-row">
+                        <div class="field">
+                            <label for="adminAirportAddLat">Latitude</label>
+                            <input id="adminAirportAddLat" type="number" step="0.000001" />
+                        </div>
+                        <div class="field">
+                            <label for="adminAirportAddLon">Longitude</label>
+                            <input id="adminAirportAddLon" type="number" step="0.000001" />
+                        </div>
+                        </div>
+                        <div class="panel-actions">
+                        <button class="btn btn-sm btn-primary" onclick="adminAirportAdd()">Add Airport</button>
+                        </div>
+                    </div>
+
+                    <div class="section-title">Airport – Update</div>
+                    <div class="field-group">
+                        <div class="field">
+                        <label for="adminAirportUpdateId">Existing ID (required)</label>
+                        <input id="adminAirportUpdateId" type="number" />
+                        </div>
+                        <div class="input-row">
+                        <div class="field">
+                            <label for="adminAirportUpdateIata">New IATA</label>
+                            <input id="adminAirportUpdateIata" class="iata-input" />
+                        </div>
+                        <div class="field">
+                            <label for="adminAirportUpdateName">New Name</label>
+                            <input id="adminAirportUpdateName" />
+                        </div>
+                        </div>
+                        <div class="input-row">
+                        <div class="field">
+                            <label for="adminAirportUpdateCity">New City</label>
+                            <input id="adminAirportUpdateCity" />
+                        </div>
+                        <div class="field">
+                            <label for="adminAirportUpdateCountry">New Country</label>
+                            <input id="adminAirportUpdateCountry" />
+                        </div>
+                        </div>
+                        <div class="input-row">
+                        <div class="field">
+                            <label for="adminAirportUpdateLat">New Latitude</label>
+                            <input id="adminAirportUpdateLat" type="number" step="0.000001" />
+                        </div>
+                        <div class="field">
+                            <label for="adminAirportUpdateLon">New Longitude</label>
+                            <input id="adminAirportUpdateLon" type="number" step="0.000001" />
+                        </div>
+                        </div>
+                        <div class="panel-actions">
+                        <button class="btn btn-sm btn-primary" onclick="adminAirportUpdate()">Update Airport</button>
+                        </div>
+                    </div>
+
+                    <div class="section-title">Airport – Delete</div>
+                    <div class="field-group">
+                        <div class="field">
+                        <label for="adminAirportDeleteId">ID to delete (routes using this airport will be removed)</label>
+                        <input id="adminAirportDeleteId" type="number" />
+                        </div>
+                        <div class="panel-actions">
+                        <button class="btn btn-sm" style="background:#fee2e2;border-color:#fecaca;color:#b91c1c;"
+                                onclick="adminAirportDelete()">Delete Airport</button>
+                        </div>
+                    </div>
+
+                    <!-- ROUTE ADD / DELETE -------------------------------->
+                    <div class="section-title">Route – Add</div>
+                    <div class="field-group">
+                        <div class="input-row">
+                        <div class="field">
+                            <label for="adminRouteAddAirlineId">Airline ID</label>
+                            <input id="adminRouteAddAirlineId" type="number" />
+                        </div>
+                        <div class="field">
+                            <label for="adminRouteAddSrcId">Source Airport ID</label>
+                            <input id="adminRouteAddSrcId" type="number" />
+                        </div>
+                        </div>
+                        <div class="input-row">
+                        <div class="field">
+                            <label for="adminRouteAddDstId">Destination Airport ID</label>
+                            <input id="adminRouteAddDstId" type="number" />
+                        </div>
+                        <div class="field">
+                            <label for="adminRouteAddStops">Stops</label>
+                            <input id="adminRouteAddStops" type="number" min="0" />
+                        </div>
+                        </div>
+                        <div class="panel-actions">
+                        <button class="btn btn-sm btn-primary" onclick="adminRouteAdd()">Add Route</button>
+                        </div>
+                    </div>
+
+                    <div class="section-title">Route – Delete</div>
+                    <div class="field-group">
+                        <div class="input-row">
+                        <div class="field">
+                            <label for="adminRouteDeleteAirlineId">Airline ID</label>
+                            <input id="adminRouteDeleteAirlineId" type="number" />
+                        </div>
+                        <div class="field">
+                            <label for="adminRouteDeleteSrcId">Source Airport ID</label>
+                            <input id="adminRouteDeleteSrcId" type="number" />
+                        </div>
+                        <div class="field">
+                            <label for="adminRouteDeleteDstId">Destination Airport ID</label>
+                            <input id="adminRouteDeleteDstId" type="number" />
+                        </div>
+                        </div>
+                        <div class="panel-actions">
+                        <button class="btn btn-sm" style="background:#fee2e2;border-color:#fecaca;color:#b91c1c;"
+                                onclick="adminRouteDelete()">Delete Route</button>
+                        </div>
+                    </div>
+                    </section>
+                </div>
+
+                <!-- OUTPUT ------------------------------------------------>
+                <div class="output-pane">
+                    <div class="output-header">
+                    <div class="output-title" id="outputTitle">Result</div>
+                    <div class="output-subtitle" id="outputSubtitle">
+                        Choose an action and run it to see data from your C++ backend.
+                    </div>
+                    </div>
+                    <div class="output-body placeholder" id="output">
+                    Select an action and run it to view airlines, airports, or routes.
+                    </div>
+                </div>
+                </div>
+            </section>
+            </div>
+        </div>
+        </div>
+
+        <!-- Loading & Toasts ----------------------------------------------->
+        <div id="loadingOverlay">
+        <div id="loader" class="loader"></div>
+        </div>
+        <div id="toastContainer" class="toast-container"></div>
+
+        <!-- ID MODAL ------------------------------------------------------>
+        <div id="idModal" class="modal" onclick="onModalBackgroundClick(event)">
+        <div class="modal-dialog">
+            <div class="modal-header">
+            <div class="modal-title">Student ID</div>
+            <button class="modal-close" onclick="hideIdModal()">×</button>
+            </div>
+            <div id="idModalBody" class="modal-body">
+            Loading…
+            </div>
+        </div>
+        </div>
+
+        <!-- Autocomplete lists ------------------------------------------->
+        <datalist id="airlineList"></datalist>
+        <datalist id="airportList"></datalist>
+
+        <script>
+        /* ---------- COMMON HELPERS ------------------------------------- */
+
+        function showToast(message, type) {
+        const container = document.getElementById('toastContainer');
+        const toast = document.createElement('div');
+        toast.className = 'toast ' + (type === 'error' ? 'toast-error' : 'toast-success');
+
+        const msgDiv = document.createElement('div');
+        msgDiv.className = 'toast-message';
+        msgDiv.textContent = message;
+
+        const closeBtn = document.createElement('button');
+        closeBtn.className = 'toast-close';
+        closeBtn.textContent = '×';
+        closeBtn.onclick = () => {
+            toast.classList.remove('show');
+            setTimeout(() => toast.remove(), 200);
+        };
+
+        toast.appendChild(msgDiv);
+        toast.appendChild(closeBtn);
+        container.appendChild(toast);
+
+        requestAnimationFrame(() => toast.classList.add('show'));
+        setTimeout(() => {
+            toast.classList.remove('show');
+            setTimeout(() => toast.remove(), 200);
+        }, 3500);
+        }
+
+        function setLoading(isLoading) {
+        const loader = document.getElementById('loader');
+        const overlay = document.getElementById('loadingOverlay');
+        if (!loader || !overlay) return;
+        if (isLoading) {
+            overlay.classList.add('show');
+        } else {
+            overlay.classList.remove('show');
+        }
+        }
+
+        function clearOutput() {
+        document.getElementById('outputTitle').innerText = 'Result';
+        document.getElementById('outputSubtitle').innerText =
+            'Choose an action and run it to see data from your C++ backend.';
+        const out = document.getElementById('output');
+        out.classList.add('placeholder');
+        out.textContent = 'Select an action and run it to view airlines, airports, or routes.';
+        }
+
+        function setOutput(html, title, subtitle) {
+        if (title) document.getElementById('outputTitle').innerText = title;
+        if (subtitle) document.getElementById('outputSubtitle').innerText = subtitle;
+        const out = document.getElementById('output');
+        out.classList.remove('placeholder');
+        out.innerHTML = html;
+        enableTableSorting();
+        }
+
+        function setError(err) {
+        const msg = (err && err.message) ? err.message : String(err);
+        document.getElementById('outputTitle').innerText = 'Error';
+        document.getElementById('outputSubtitle').innerText = '';
+        const out = document.getElementById('output');
+        out.classList.remove('placeholder');
+        out.textContent = msg;
+        setLoading(false);
+        showToast(msg, 'error');
+        }
+
+        /* ---------- API HELPERS ---------------------------------------- */
+
+        function api(path) {
+        return fetch(path).then(res => {
+            if (!res.ok) {
+            return res.text().then(t => { throw new Error(t || ('HTTP ' + res.status)); });
+            }
+            return res.json();
+        });
+        }
+
+        function apiPost(path, payload) {
+        return fetch(path, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        }).then(res => {
+            if (!res.ok) {
+            return res.text().then(t => { throw new Error(t || ('HTTP ' + res.status)); });
+            }
+            return res.json();
+        });
+        }
+
+        /* ---------- ID MODAL ------------------------------------------- */
+
+        function showIdModal() {
+        document.getElementById('idModal').classList.add('show');
+        }
+        function hideIdModal() {
+        document.getElementById('idModal').classList.remove('show');
+        }
+        function onModalBackgroundClick(event) {
+        if (event.target.id === 'idModal') hideIdModal();
+        }
+
+        function renderIdInModal(data) {
+        const name = data.name || '';
+        const id = data.deanza_id || data.id || '';
+        const chip = document.getElementById('headerIdText');
+        chip.textContent = name && id ? `${name} (${id})` : '';
+
+        const html = `
+            <div class="info-grid">
+            <div class="info-item">
+                <div class="info-label">Name</div>
+                <div class="info-value">${name}</div>
+            </div>
+            <div class="info-item">
+                <div class="info-label">De Anza ID</div>
+                <div class="info-value">${id}</div>
+            </div>
+            </div>
+            <p style="font-size:11px;color:var(--muted);margin-top:6px;">
+            This ID is returned from the C++ backend via the <code>/id</code> endpoint.
+            </p>`;
+        document.getElementById('idModalBody').innerHTML = html;
+        }
+
+        function loadId() {
+        document.getElementById('idModalBody').textContent = 'Loading…';
+        showIdModal();
+        api('/id')
+            .then(data => { renderIdInModal(data); showToast('ID loaded from backend.', 'success'); })
+            .catch(err => {
+            document.getElementById('idModalBody').textContent = 'Error: ' + err.message;
+            showToast(err.message, 'error');
+            });
+        }
+
+        /* ---------- TABLE SORTING -------------------------------------- */
+
+        function enableTableSorting() {
+        document.querySelectorAll('#output table.sortable').forEach(table => {
+            const thead = table.tHead;
+            if (!thead) return;
+            Array.from(thead.rows[0].cells).forEach((th, index) => {
+            th.onclick = () => {
+                const dir = th.dataset.sortDir === 'asc' ? 'desc' : 'asc';
+                th.dataset.sortDir = dir;
+                Array.from(th.parentElement.cells).forEach(other => {
+                if (other !== th) other.removeAttribute('data-sort-dir');
+                });
+                sortTableByColumn(table, index, dir === 'asc');
+            };
+            });
+        });
+        }
+
+        function sortTableByColumn(table, columnIndex, asc = true) {
+        const tbody = table.tBodies[0];
+        const rows = Array.from(tbody.rows);
+        rows.sort((a, b) => {
+            const A = a.cells[columnIndex].innerText.trim();
+            const B = b.cells[columnIndex].innerText.trim();
+            const numA = parseFloat(A), numB = parseFloat(B);
+            if (!isNaN(numA) && !isNaN(numB)) {
+            return asc ? numA - numB : numB - numA;
+            }
+            return asc ? A.localeCompare(B) : B.localeCompare(A);
+        });
+        rows.forEach(r => tbody.appendChild(r));
+        }
+
+        /* ---------- RENDER HELPERS ------------------------------------- */
+
+        function renderTable(headers, rows) {
+        let thead = '<tr>';
+        headers.forEach(h => thead += `<th>${h}</th>`);
+        thead += '</tr>';
+        let tbody = '';
+        rows.forEach(r => {
+            tbody += '<tr>';
+            r.forEach(cell => { tbody += `<td>${cell}</td>`; });
+            tbody += '</tr>';
+        });
+        return `<div style="max-height:360px;overflow:auto;"><table class="sortable">${thead}${tbody}</table></div>`;
+        }
+
+        function renderAirline(data, code) {
+        const active = !!data.active;
+        const statusBadge = `<span class="status-badge ${active ? 'status-active' : 'status-inactive'}">${active ? 'Active' : 'Inactive'}</span>`;
+
+        const infoHtml = `
+            <div class="info-grid">
+            <div class="info-item">
+                <div class="info-label">Name</div>
+                <div class="info-value">${data.name || ''}</div>
+            </div>
+            <div class="info-item">
+                <div class="info-label">IATA</div>
+                <div class="info-value">${data.iata || code || ''}</div>
+            </div>
+            <div class="info-item">
+                <div class="info-label">Country</div>
+                <div class="info-value">${data.country || ''}</div>
+            </div>
+            <div class="info-item">
+                <div class="info-label">Active flag</div>
+                <div class="info-value">${String(data.active)}</div>
+            </div>
+            <div class="info-item">
+                <div class="info-label">Internal ID</div>
+                <div class="info-value">${data.id}</div>
+            </div>
+            <div class="info-item">
+                <div class="info-label">Status</div>
+                <div class="info-value">${statusBadge}</div>
+            </div>
+            </div>`;
+
+        const pieces = [];
+        if (data.name) pieces.push(`✈️ <strong>${data.name}</strong>`);
+        if (data.country) pieces.push(`based in <strong>${data.country}</strong>`);
+        if (data.iata || code) pieces.push(`using IATA code <strong>${data.iata || code}</strong>`);
+        const summaryLine = pieces.length
+            ? pieces.join(' ') + (active ? '. This airline is currently active.' : '. This airline is marked inactive.')
+            : 'Basic information about this airline loaded from the backend.';
+
+        const summaryHtml = `
+            <div class="summary-card">
+            <div class="summary-title">Quick summary</div>
+            <div class="summary-body">${summaryLine}</div>
+            </div>`;
+
+        setOutput(infoHtml + summaryHtml,
+            `Airline: ${data.iata || code}`,
+            'Basic airline details from the C++ backend.');
+        showToast(`Loaded airline ${data.iata || code}`, 'success');
+        }
+
+        function renderAirport(data, code) {
+        const infoHtml = `
+            <div class="info-grid">
+            <div class="info-item">
+                <div class="info-label">Name</div>
+                <div class="info-value">${data.name || ''}</div>
+            </div>
+            <div class="info-item">
+                <div class="info-label">IATA</div>
+                <div class="info-value">${data.iata || code || ''}</div>
+            </div>
+            <div class="info-item">
+                <div class="info-label">City</div>
+                <div class="info-value">${data.city || ''}</div>
+            </div>
+            <div class="info-item">
+                <div class="info-label">Country</div>
+                <div class="info-value">${data.country || ''}</div>
+            </div>
+            <div class="info-item">
+                <div class="info-label">Latitude</div>
+                <div class="info-value">${data.latitude}</div>
+            </div>
+            <div class="info-item">
+                <div class="info-label">Longitude</div>
+                <div class="info-value">${data.longitude}</div>
+            </div>
+            </div>`;
+
+        const name = data.name || 'This airport';
+        const city = data.city || '';
+        const country = data.country || '';
+        const summaryLine = city || country
+            ? `🛬 <strong>${name}</strong> primarily serves <strong>${city}${city && country ? ', ' : ''}${country}</strong>.`
+            : '🛬 Airport metadata and coordinates loaded from the backend.';
+
+        const summaryHtml = `
+            <div class="summary-card">
+            <div class="summary-title">Quick summary</div>
+            <div class="summary-body">${summaryLine}</div>
+            </div>`;
+
+        setOutput(infoHtml + summaryHtml,
+            `Airport: ${data.iata || code}`,
+            'Airport location and metadata.');
+        showToast(`Loaded airport ${data.iata || code}`, 'success');
+        }
+
+        function renderAirlineRoutes(data, code) {
+        const airline = data.airline || {};
+        const list = data.airports || [];
+
+        const rows = list.map(a => [
+            a.iata || '',
+            a.name || '',
+            a.city || '',
+            a.country || '',
+            a.route_count
+        ]);
+
+        let best = null;
+        list.forEach(a => {
+            if (!best || (a.route_count || 0) > (best.route_count || 0)) {
+            best = a;
+            }
+        });
+
+        const table = renderTable(
+            ['Airport IATA', 'Name', 'City', 'Country', '# Routes'],
+            rows
+        );
+
+        const titleHtml = `
+            <div class="info-grid">
+            <div class="info-item">
+                <div class="info-label">Airline</div>
+                <div class="info-value">${airline.name || ''}</div>
+            </div>
+            <div class="info-item">
+                <div class="info-label">IATA</div>
+                <div class="info-value">${airline.iata || code || ''}</div>
+            </div>
+            </div>`;
+
+        const highlight = best ? `
+            <div class="summary-card">
+            <div class="summary-title">Busiest airport for this airline</div>
+            <div class="summary-body">
+                <div>🏙️ <strong>${best.name || ''}</strong> (<strong>${best.iata || ''}</strong>) in
+                <strong>${best.city || ''}${best.city && best.country ? ', ' : ''}${best.country || ''}</strong>
+                appears on <strong>${best.route_count}</strong> routes for this airline.</div>
+            </div>
+            </div>` : '';
+
+        setOutput(titleHtml + highlight + table,
+            `Airline Route Report: ${airline.iata || code}`,
+            'Airports served by the selected airline.');
+        showToast(`Loaded airline route report for ${airline.iata || code}`, 'success');
+        }
+
+        function renderAirportRoutes(data, code) {
+        const airport = data.airport || {};
+        const list = data.airlines || [];
+
+        const rows = list.map(a => [
+            a.iata || '',
+            a.name || '',
+            a.country || '',
+            a.route_count
+        ]);
+
+        let best = null;
+        list.forEach(a => {
+            if (!best || (a.route_count || 0) > (best.route_count || 0)) {
+            best = a;
+            }
+        });
+
+        const table = renderTable(
+            ['Airline IATA', 'Name', 'Country', '# Routes'],
+            rows
+        );
+
+        const titleHtml = `
+            <div class="info-grid">
+            <div class="info-item">
+                <div class="info-label">Airport</div>
+                <div class="info-value">${airport.name || ''}</div>
+            </div>
+            <div class="info-item">
+                <div class="info-label">IATA</div>
+                <div class="info-value">${airport.iata || code || ''}</div>
+            </div>
+            <div class="info-item">
+                <div class="info-label">City / Country</div>
+                <div class="info-value">${airport.city || ''}${airport.city && airport.country ? ' / ' : ''}${airport.country || ''}</div>
+            </div>
+            </div>`;
+
+        const highlight = best ? `
+            <div class="summary-card">
+            <div class="summary-title">Top airline at this airport</div>
+            <div class="summary-body">
+                <div>✈️ <strong>${best.name || ''}</strong> (<strong>${best.iata || ''}</strong>) operates
+                <strong>${best.route_count}</strong> routes involving this airport.</div>
+            </div>
+            </div>` : '';
+
+        setOutput(titleHtml + highlight + table,
+            `Airport Route Report: ${airport.iata || code}`,
+            'Airlines that serve the selected airport.');
+        showToast(`Loaded airport route report for ${airport.iata || code}`, 'success');
+        }
+
+        function renderAirlinesList(data) {
+        const list = data.airlines || [];
+        const rows = list.map(a => {
+            const badge = `<span class="status-badge ${a.active ? 'status-active' : 'status-inactive'}">${a.active ? 'Active' : 'Inactive'}</span>`;
+            return [a.iata || '', a.name || '', a.country || '', badge];
+        });
+        const table = renderTable(['IATA', 'Name', 'Country', 'Status'], rows);
+        setOutput(table, 'All Airlines (sorted by IATA)', 'Snapshot of all airlines currently loaded in memory.');
+        showToast(`Loaded ${list.length} airlines.`, 'success');
+        }
+
+        function renderAirportsList(data) {
+        const list = data.airports || [];
+        const rows = list.map(a => [
+            a.iata || '',
+            a.name || '',
+            a.city || '',
+            a.country || ''
+        ]);
+        const table = renderTable(['IATA', 'Name', 'City', 'Country'], rows);
+        setOutput(table, 'All Airports (sorted by IATA)', 'Snapshot of all airports currently loaded in memory.');
+        showToast(`Loaded ${list.length} airports.`, 'success');
+        }
+
+        function renderOneHop(data, src, dst) {
+        const routes = data.routes || [];
+        if (!routes.length) {
+            setOutput(
+            `<p>No one-hop routes found from <strong>${src}</strong> to <strong>${dst}</strong> with 0 stops on each leg.</p>`,
+            `One-Hop Routes: ${src} → ${dst}`,
+            'No valid one-hop combinations were found.'
+            );
+            showToast(`No one-hop routes found for ${src} → ${dst}`, 'error');
+            return;
+        }
+
+        const rows = routes.map(r => [
+            (r.via && r.via.iata) || r.via_iata || '',
+            (r.via && r.via.name) || r.via_name || '',
+            r.total_miles ? r.total_miles.toFixed(1) : '',
+            r.airline1 && r.airline1.iata ? r.airline1.iata : (r.airline1_iata || ''),
+            r.airline2 && r.airline2.iata ? r.airline2.iata : (r.airline2_iata || '')
+        ]);
+
+        const table = renderTable(
+            ['Via IATA', 'Via Name', 'Total Miles', 'Airline 1', 'Airline 2'],
+            rows
+        );
+
+        const viaSet = new Set();
+        const airlineSet = new Set();
+        let best = null;
+
+        routes.forEach(r => {
+            const viaCode = (r.via && r.via.iata) || r.via_iata;
+            if (viaCode) viaSet.add(viaCode);
+
+            const a1 = r.airline1 && r.airline1.iata ? r.airline1.iata : (r.airline1_iata || '');
+            const a2 = r.airline2 && r.airline2.iata ? r.airline2.iata : (r.airline2_iata || '');
+            if (a1) airlineSet.add(a1);
+            if (a2) airlineSet.add(a2);
+
+            if (!best || (r.total_miles || Infinity) < (best.total_miles || Infinity)) {
+            best = r;
+            }
+        });
+
+        const airlinesList = Array.from(airlineSet).sort().join(', ');
+        const bestVia = best ? ((best.via && best.via.iata) || best.via_iata || '') : '';
+        const bestMiles = best && best.total_miles ? best.total_miles.toFixed(1) : '';
+
+        let bestAirlineCodes = [];
+        if (best) {
+            const a1 = best.airline1 && best.airline1.iata ? best.airline1.iata : (best.airline1_iata || '');
+            const a2 = best.airline2 && best.airline2.iata ? best.airline2.iata : (best.airline2_iata || '');
+            if (a1) bestAirlineCodes.push(a1);
+            if (a2 && a2 !== a1) bestAirlineCodes.push(a2);
+        }
+        const bestAirlineStr = bestAirlineCodes.join(' + ');
+
+        const header = `
+            <div class="info-grid">
+            <div class="info-item">
+                <div class="info-label">Source</div>
+                <div class="info-value">${src}</div>
+            </div>
+            <div class="info-item">
+                <div class="info-label">Destination</div>
+                <div class="info-value">${dst}</div>
+            </div>
+            </div>`;
+
+        const summaryHtml = `
+            <div class="summary-card">
+            <div class="summary-title">Trip summary</div>
+            <div class="summary-body">
+                <div>🧭 Found <strong>${routes.length}</strong> one-hop routes from <strong>${src}</strong> to <strong>${dst}</strong>.</div>
+                <div>🛫 Via airports: <strong>${viaSet.size}</strong> · Airlines involved: <strong>${airlineSet.size}</strong>${
+                airlinesList ? ` (${airlinesList})` : ''
+                }.</div>
+                ${best ? `<div>⭐ Shortest option: via <strong>${bestVia}</strong> with <strong>${bestAirlineStr || 'unknown airlines'}</strong> — about <strong>${bestMiles}</strong> miles total.</div>` : ''}
+            </div>
+            </div>`;
+
+        setOutput(header + summaryHtml + table,
+            `One-Hop Routes: ${src} → ${dst}`,
+            'Sorted by total air miles (ascending).');
+        showToast(`Found ${routes.length} one-hop routes for ${src} → ${dst}`, 'success');
+        }
+
+        /* ---------- ACTION CALLS --------------------------------------- */
+
+        function lookupAirline() {
+        const code = document.getElementById('airlineInput').value.trim();
+        if (!code) {
+            setError(new Error('Please enter an airline IATA code.'));
+            return;
+        }
+        setLoading(true);
+        api(`/airline?iata=${encodeURIComponent(code)}`)
+            .then(data => renderAirline(data, code))
+            .catch(setError)
+            .finally(() => setLoading(false));
+        }
+
+        function lookupAirport() {
+        const code = document.getElementById('airportInput').value.trim();
+        if (!code) {
+            setError(new Error('Please enter an airport IATA code.'));
+            return;
+        }
+        setLoading(true);
+        api(`/airport?iata=${encodeURIComponent(code)}`)
+            .then(data => renderAirport(data, code))
+            .catch(setError)
+            .finally(() => setLoading(false));
+        }
+
+        function airlineRoutes() {
+        const code = document.getElementById('airlineRouteInput').value.trim();
+        if (!code) {
+            setError(new Error('Please enter an airline IATA code.'));
+            return;
+        }
+        setLoading(true);
+        api(`/airline-routes?iata=${encodeURIComponent(code)}`)
+            .then(data => renderAirlineRoutes(data, code))
+            .catch(setError)
+            .finally(() => setLoading(false));
+        }
+
+        function airportRoutes() {
+        const code = document.getElementById('airportRouteInput').value.trim();
+        if (!code) {
+            setError(new Error('Please enter an airport IATA code.'));
+            return;
+        }
+        setLoading(true);
+        api(`/airport-routes?iata=${encodeURIComponent(code)}`)
+            .then(data => renderAirportRoutes(data, code))
+            .catch(setError)
+            .finally(() => setLoading(false));
+        }
+
+        function oneHop() {
+        const src = document.getElementById('oneHopSrcInput').value.trim();
+        const dst = document.getElementById('oneHopDstInput').value.trim();
+        if (!src || !dst) {
+            setError(new Error('Please enter both source and destination IATA codes.'));
+            return;
+        }
+        setLoading(true);
+        api(`/one-hop?src=${encodeURIComponent(src)}&dst=${encodeURIComponent(dst)}`)
+            .then(data => renderOneHop(data, src, dst))
+            .catch(setError)
+            .finally(() => setLoading(false));
+        }
+
+        function allAirlines() {
+        setLoading(true);
+        api('/airlines-by-iata')
+            .then(renderAirlinesList)
+            .catch(setError)
+            .finally(() => setLoading(false));
+        }
+
+        function allAirports() {
+        setLoading(true);
+        api('/airports-by-iata')
+            .then(renderAirportsList)
+            .catch(setError)
+            .finally(() => setLoading(false));
+        }
+
+        /* ---------- ADMIN CALLS ---------------------------------------- */
+
+        function adminAirlineAdd() {
+        const id = parseInt(document.getElementById('adminAirlineAddId').value, 10);
+        const iata = document.getElementById('adminAirlineAddIata').value.trim();
+        const name = document.getElementById('adminAirlineAddName').value.trim();
+        const country = document.getElementById('adminAirlineAddCountry').value.trim();
+        const active = document.getElementById('adminAirlineAddActive').checked;
+        if (!id || !iata || !name) {
+            setError(new Error('Airline Add: id, iata, and name are required.'));
+            return;
+        }
+        setLoading(true);
+        apiPost('/airline-add', { id, iata, name, country, active })
+            .then(resp => {
+            showToast(resp.message || 'Airline added.', 'success');
+            setOutput(
+                `<p>Airline added: <strong>${resp.airline.iata}</strong> — ${resp.airline.name}</p>`,
+                'Admin: Airline Add',
+                ''
+            );
+            preloadIataLists();
+            })
+            .catch(setError)
+            .finally(() => setLoading(false));
+        }
+
+        function adminAirlineUpdate() {
+        const id = parseInt(document.getElementById('adminAirlineUpdateId').value, 10);
+        if (!id) {
+            setError(new Error('Airline Update: id is required.'));
+            return;
+        }
+        const iata = document.getElementById('adminAirlineUpdateIata').value.trim();
+        const name = document.getElementById('adminAirlineUpdateName').value.trim();
+        const country = document.getElementById('adminAirlineUpdateCountry').value.trim();
+        const activeChecked = document.getElementById('adminAirlineUpdateActive').checked;
+
+        const payload = { id };
+        if (iata) payload.iata = iata;
+        if (name) payload.name = name;
+        if (country) payload.country = country;
+        if (activeChecked) payload.active = true;
+
+        setLoading(true);
+        apiPost('/airline-update', payload)
+            .then(resp => {
+            showToast(resp.message || 'Airline updated.', 'success');
+            setOutput(
+                `<p>Airline updated: <strong>${resp.airline.iata}</strong> — ${resp.airline.name}</p>`,
+                'Admin: Airline Update',
+                ''
+            );
+            preloadIataLists();
+            })
+            .catch(setError)
+            .finally(() => setLoading(false));
+        }
+
+        function adminAirlineDelete() {
+        const id = parseInt(document.getElementById('adminAirlineDeleteId').value, 10);
+        if (!id) {
+            setError(new Error('Airline Delete: id is required.'));
+            return;
+        }
+        setLoading(true);
+        apiPost('/airline-delete', { id })
+            .then(resp => {
+            showToast(resp.message || 'Airline deleted.', 'success');
+            setOutput(
+                `<p>${resp.message || 'Airline deleted.'}</p>`,
+                'Admin: Airline Delete',
+                ''
+            );
+            preloadIataLists();
+            })
+            .catch(setError)
+            .finally(() => setLoading(false));
+        }
+
+        function adminAirportAdd() {
+        const id = parseInt(document.getElementById('adminAirportAddId').value, 10);
+        const iata = document.getElementById('adminAirportAddIata').value.trim();
+        const name = document.getElementById('adminAirportAddName').value.trim();
+        const city = document.getElementById('adminAirportAddCity').value.trim();
+        const country = document.getElementById('adminAirportAddCountry').value.trim();
+        const latVal = document.getElementById('adminAirportAddLat').value;
+        const lonVal = document.getElementById('adminAirportAddLon').value;
+        const latitude = latVal ? parseFloat(latVal) : 0.0;
+        const longitude = lonVal ? parseFloat(lonVal) : 0.0;
+
+        if (!id || !iata || !name) {
+            setError(new Error('Airport Add: id, iata, and name are required.'));
+            return;
+        }
+        setLoading(true);
+        apiPost('/airport-add', { id, iata, name, city, country, latitude, longitude })
+            .then(resp => {
+            showToast(resp.message || 'Airport added.', 'success');
+            setOutput(
+                `<p>Airport added: <strong>${resp.airport.iata}</strong> — ${resp.airport.name}</p>`,
+                'Admin: Airport Add',
+                ''
+            );
+            preloadIataLists();
+            })
+            .catch(setError)
+            .finally(() => setLoading(false));
+        }
+
+        function adminAirportUpdate() {
+        const id = parseInt(document.getElementById('adminAirportUpdateId').value, 10);
+        if (!id) {
+            setError(new Error('Airport Update: id is required.'));
+            return;
+        }
+        const iata = document.getElementById('adminAirportUpdateIata').value.trim();
+        const name = document.getElementById('adminAirportUpdateName').value.trim();
+        const city = document.getElementById('adminAirportUpdateCity').value.trim();
+        const country = document.getElementById('adminAirportUpdateCountry').value.trim();
+        const latVal = document.getElementById('adminAirportUpdateLat').value;
+        const lonVal = document.getElementById('adminAirportUpdateLon').value;
+
+        const payload = { id };
+        if (iata) payload.iata = iata;
+        if (name) payload.name = name;
+        if (city) payload.city = city;
+        if (country) payload.country = country;
+        if (latVal) payload.latitude = parseFloat(latVal);
+        if (lonVal) payload.longitude = parseFloat(lonVal);
+
+        setLoading(true);
+        apiPost('/airport-update', payload)
+            .then(resp => {
+            showToast(resp.message || 'Airport updated.', 'success');
+            setOutput(
+                `<p>Airport updated: <strong>${resp.airport.iata}</strong> — ${resp.airport.name}</p>`,
+                'Admin: Airport Update',
+                ''
+            );
+            preloadIataLists();
+            })
+            .catch(setError)
+            .finally(() => setLoading(false));
+        }
+
+        function adminAirportDelete() {
+        const id = parseInt(document.getElementById('adminAirportDeleteId').value, 10);
+        if (!id) {
+            setError(new Error('Airport Delete: id is required.'));
+            return;
+        }
+        setLoading(true);
+        apiPost('/airport-delete', { id })
+            .then(resp => {
+            showToast(resp.message || 'Airport deleted.', 'success');
+            setOutput(
+                `<p>${resp.message || 'Airport deleted.'}</p>`,
+                'Admin: Airport Delete',
+                ''
+            );
+            preloadIataLists();
+            })
+            .catch(setError)
+            .finally(() => setLoading(false));
+        }
+
+        function adminRouteAdd() {
+        const airlineId = parseInt(document.getElementById('adminRouteAddAirlineId').value, 10);
+        const srcId = parseInt(document.getElementById('adminRouteAddSrcId').value, 10);
+        const dstId = parseInt(document.getElementById('adminRouteAddDstId').value, 10);
+        const stopsVal = document.getElementById('adminRouteAddStops').value;
+        const stops = stopsVal === '' ? 0 : parseInt(stopsVal, 10);
+
+        if (!airlineId || !srcId || !dstId) {
+            setError(new Error('Route Add: airline_id, src_id, and dst_id are required.'));
+            return;
+        }
+        setLoading(true);
+        apiPost('/route-add', {
+            airline_id: airlineId,
+            src_id: srcId,
+            dst_id: dstId,
+            stops: stops
+        })
+            .then(resp => {
+            showToast(resp.message || 'Route added.', 'success');
+            setOutput(
+                `<p>Route added: airline_id=${resp.route.airline_id}, src_id=${resp.route.src_id}, dst_id=${resp.route.dst_id}, stops=${resp.route.stops}</p>`,
+                'Admin: Route Add',
+                ''
+            );
+            })
+            .catch(setError)
+            .finally(() => setLoading(false));
+        }
+
+        function adminRouteDelete() {
+        const airlineId = parseInt(document.getElementById('adminRouteDeleteAirlineId').value, 10);
+        const srcId = parseInt(document.getElementById('adminRouteDeleteSrcId').value, 10);
+        const dstId = parseInt(document.getElementById('adminRouteDeleteDstId').value, 10);
+
+        if (!airlineId || !srcId || !dstId) {
+            setError(new Error('Route Delete: airline_id, src_id, and dst_id are required.'));
+            return;
+        }
+        setLoading(true);
+        apiPost('/route-delete', {
+            airline_id: airlineId,
+            src_id: srcId,
+            dst_id: dstId
+        })
+            .then(resp => {
+            showToast(resp.message || 'Route deleted.', 'success');
+            setOutput(
+                `<p>${resp.message || 'Route deleted.'}</p>`,
+                'Admin: Route Delete',
+                ''
+            );
+            })
+            .catch(setError)
+            .finally(() => setLoading(false));
+        }
+
+        /* ---------- NAV / PAGES ---------------------------------------- */
+
+        const pageChipLabels = {
+        'airline': 'Lookup Airline',
+        'airport': 'Lookup Airport',
+        'airline-routes': 'Airline Route Report',
+        'airport-routes': 'Airport Route Report',
+        'one-hop': 'One-Hop Route Finder',
+        'all-airlines': 'All Airlines',
+        'all-airports': 'All Airports',
+        'admin': 'Admin / Data Editor'
+        };
+
+        function setActivePanel(panelName) {
+        document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+        const panel = document.getElementById('panel-' + panelName);
+        if (panel) panel.classList.add('active');
+
+        document.querySelectorAll('.workspace-tab').forEach(tab => {
+            tab.classList.toggle('active', tab.dataset.panel === panelName);
+        });
+
+        const chip = document.getElementById('pageChipText');
+        if (chip && pageChipLabels[panelName]) {
+            chip.textContent = pageChipLabels[panelName];
+        }
+        const crumb = document.getElementById('breadcrumbLabel');
+        if (crumb && pageChipLabels[panelName]) {
+            crumb.textContent = pageChipLabels[panelName];
+        }
+        }
+
+        function openAction(panelName) {
+        document.getElementById('page-menu').classList.remove('active');
+        document.getElementById('page-workspace').classList.add('active');
+        setActivePanel(panelName);
+        clearOutput();
+        }
+
+        function goBackToMenu() {
+        document.getElementById('page-workspace').classList.remove('active');
+        document.getElementById('page-menu').classList.add('active');
+        clearOutput();
+        }
+
+        function attachTabs() {
+        document.querySelectorAll('.workspace-tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+            const panelName = tab.dataset.panel;
+            setActivePanel(panelName);
+            clearOutput();
+            });
+        });
+        }
+
+        /* ---------- AUTOCOMPLETE LISTS -------------------------------- */
+
+        function preloadIataLists() {
+        api('/airlines-by-iata')
+            .then(data => {
+            const list = data.airlines || [];
+            const dl = document.getElementById('airlineList');
+            dl.innerHTML = '';
+            list.forEach(a => {
+                if (!a.iata) return;
+                const opt = document.createElement('option');
+                opt.value = a.iata;
+                opt.textContent = `${a.iata} — ${a.name || ''}`;
+                dl.appendChild(opt);
+            });
+            })
+            .catch(() => {});
+
+        api('/airports-by-iata')
+            .then(data => {
+            const list = data.airports || [];
+            const dl = document.getElementById('airportList');
+            dl.innerHTML = '';
+            list.forEach(a => {
+                if (!a.iata) return;
+                const opt = document.createElement('option');
+                opt.value = a.iata;
+                opt.textContent = `${a.iata} — ${a.name || ''}`;
+                dl.appendChild(opt);
+            });
+            })
+            .catch(() => {});
+        }
+
+        /* ---------- MISC ----------------------------------------------- */
+
+        function prefillOneHop(src, dst) {
+        document.getElementById('oneHopSrcInput').value = src;
+        document.getElementById('oneHopDstInput').value = dst;
+        }
+
+        /* ---------- INIT ----------------------------------------------- */
+
+        document.addEventListener('DOMContentLoaded', () => {
+        attachTabs();
+        preloadIataLists();
+        clearOutput();
+
+        document.querySelectorAll('.iata-input').forEach(inp => {
+            inp.addEventListener('input', () => {
+            inp.value = inp.value.toUpperCase();
+            });
+        });
+        });
+        </script>
+        </body>
+        </html>
+      </code></pre>
+    </details>
+  </div>
+</body>
+</html>

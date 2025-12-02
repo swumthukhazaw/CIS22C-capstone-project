@@ -1,0 +1,21 @@
+# Ignore executables
+*.exe
+
+# Ignore object files
+*.o
+*.obj
+
+# Ignore build directories
+/build/
+bin/
+out/
+
+# Ignore Windows junk
+Thumbs.db
+desktop.ini
+
+# Ignore VSCode local configs
+.vscode/
+
+# Ignore OneDrive sync hidden files
+*.lnk

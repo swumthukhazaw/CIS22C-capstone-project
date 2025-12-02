@@ -6,39 +6,24 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <style>
     :root {
-      --bg: #020617;
-      --bg-elevated: #020617;
-      --panel: rgba(15,23,42,0.96);
-      --panel-soft: rgba(15,23,42,0.9);
-      --panel-strong: rgba(15,23,42,1);
-      --accent: #38bdf8;
-      --accent-soft: rgba(56,189,248,0.12);
-      --accent-strong: #0ea5e9;
-      --accent-gradient: linear-gradient(135deg,#38bdf8,#22c55e);
-      --danger: #f97373;
-      --muted: #94a3b8;
-      --text: #e2e8f0;
-      --border-subtle: rgba(148,163,184,0.45);
-      --shadow-soft: 0 20px 45px rgba(15,23,42,0.9);
-      --particle-color: rgba(148,163,184,0.28);
-    }
+    /* Light, slightly colorful theme */
+    --bg: #f3f4f6;              /* page background */
+    --panel: #ffffff;           /* main shell base */
+    --panel-soft: #f9fafb;
+    --panel-line: #e5e7eb;
+    --panel-strong: #ffffff;
 
-    [data-theme="light"] {
-      --bg: #e5f0ff;
-      --bg-elevated: #e5f0ff;
-      --panel: #f8fafc;
-      --panel-soft: #f1f5f9;
-      --panel-strong: #ffffff;
-      --accent: #0284c7;
-      --accent-soft: rgba(56,189,248,0.12);
-      --accent-strong: #0369a1;
-      --accent-gradient: linear-gradient(135deg,#0ea5e9,#22c55e);
-      --danger: #dc2626;
-      --muted: #64748b;
-      --text: #0f172a;
-      --border-subtle: rgba(148,163,184,0.6);
-      --shadow-soft: 0 12px 40px rgba(15,23,42,0.2);
-      --particle-color: rgba(148,163,184,0.4);
+    /* Indigo / lilac accent */
+    --accent: #6366f1;          /* primary accent (buttons, tabs) */
+    --accent-soft: #eef2ff;     /* pale indigo for highlights */
+    --accent-strong: #4f46e5;
+
+    --danger: #ef4444;
+    --muted: #6b7280;
+    --text: #111827;
+    --border-subtle: #e5e7eb;
+    --shadow-soft: 0 18px 40px rgba(15,23,42,0.12);
+    --code-bg: #111827;
     }
 
     * {
@@ -46,165 +31,103 @@
     }
 
     html, body {
-      margin: 0;
-      padding: 0;
-      height: 100%;
-      font-family: system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif;
-      background: radial-gradient(circle at top, #020617 0%, #000 55%);
-      color: var(--text);
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif;
+    background: radial-gradient(circle at top left, #e0e7ff 0, #eef2ff 40%, #e5e7eb 100%);
+    color: var(--text);
     }
 
     body {
-      position: relative;
-      overflow-x: hidden;
-    }
-
-    #bgCanvas {
-      position: fixed;
-      inset: 0;
-      z-index: 0;
-      pointer-events: none;
-      opacity: 0.35;
-    }
-
-    #app {
-      position: relative;
-      z-index: 1;
-      min-height: 100vh;
-      display: flex;
-      align-items: flex-start;
-      justify-content: center;
-      padding: 24px 16px 40px;
+    display: flex;
+    align-items: stretch;
+    justify-content: center;
+    padding: 8px;
     }
 
     .app-shell {
-      width: 100%;
-      max-width: 1200px;
-      border-radius: 24px;
-      background: radial-gradient(circle at top left, rgba(56,189,248,0.18), transparent 60%), var(--panel);
-      box-shadow: var(--shadow-soft);
-      border: 1px solid rgba(148,163,184,0.32);
-      backdrop-filter: blur(14px);
-      padding: 18px 18px 20px;
+    width: 100%;
+    max-width: 1440px;
+    min-height: calc(100vh - 16px);
+    border-radius: 18px;
+    padding: 20px 24px 22px;
+
+    background: linear-gradient(135deg, #ffffff 0%, #f8f5ff 40%, #f3f0ff 100%);
+    border: 1px solid rgba(99,102,241,0.15);
+    box-shadow:
+        0 10px 25px rgba(99,102,241,0.12),
+        0 0 20px rgba(139,92,246,0.10) inset;
     }
+
+    /* Optional canvas (currently unused, but kept in case you want it later) */
+    #bgCanvas {
+      display: none;
+    }
+
+
+    /* HEADER -------------------------------------------------------- */
 
     .app-header {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      gap: 16px;
-      margin-bottom: 12px;
+      border-bottom: 1px solid var(--border-subtle);
+      padding-bottom: 12px;
+      margin-bottom: 16px;
     }
 
-    .app-title {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-
-    .app-title-main {
+    .brand-block {
       display: flex;
       flex-direction: column;
       gap: 4px;
     }
 
-    .logo-circle {
-      width: 32px;
-      height: 32px;
-      border-radius: 999px;
-      background: var(--accent-gradient);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 18px;
-      box-shadow: 0 8px 20px rgba(56,189,248,0.45);
+    .brand-line-1 {
+      letter-spacing: 0.28em;
+      text-transform: uppercase;
+      font-size: 11px;
+      color: var(--accent-strong);
     }
 
-    h1 {
-      margin: 0;
-      font-size: 19px;
-      letter-spacing: 0.02em;
+    .brand-line-2 {
+      font-size: 20px;
+      font-weight: 600;
     }
 
-    .subtitle {
-      margin: 0;
+    .brand-line-3 {
       font-size: 11px;
       color: var(--muted);
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-    }
-
-    .chip-row {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      margin-top: 4px;
-    }
-
-    .chip {
-      border-radius: 999px;
-      padding: 3px 10px;
-      border: 1px solid rgba(148,163,184,0.35);
-      font-size: 10px;
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
-      color: var(--muted);
-      background: radial-gradient(circle at top, rgba(148,163,184,0.15), transparent 60%);
-    }
-
-    .badge-cta {
-      border-radius: 999px;
-      padding: 3px 9px;
-      font-size: 10px;
-      color: var(--accent-strong);
-      background: rgba(56,189,248,0.12);
-      border: 1px solid rgba(56,189,248,0.3);
     }
 
     .header-right {
       display: flex;
       align-items: center;
-      gap: 10px;
+      gap: 12px;
       font-size: 12px;
     }
 
-    .icon-btn {
+    .chip {
       border-radius: 999px;
-      border: 1px solid rgba(148,163,184,0.45);
-      background: radial-gradient(circle at top, rgba(15,23,42,0.85), rgba(15,23,42,1));
-      color: var(--text);
-      padding: 6px 10px;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      gap: 4px;
-      cursor: pointer;
-      font-size: 12px;
-      transition: transform 0.1s ease, box-shadow 0.1s ease, border-color 0.1s ease, background 0.1s ease;
-    }
-
-    .icon-btn:hover {
-      transform: translateY(-1px);
-      box-shadow: 0 10px 25px rgba(15,23,42,0.6);
-      border-color: var(--accent);
-      background: radial-gradient(circle at top, rgba(15,23,42,0.9), rgba(15,23,42,1));
-    }
-
-    .icon-btn span {
-      font-size: 14px;
+      padding: 4px 10px;
+      border: 1px solid var(--border-subtle);
+      background: var(--panel-soft);
+      font-size: 11px;
+      color: var(--muted);
+      white-space: nowrap;
     }
 
     .id-chip {
       border-radius: 999px;
-      padding: 4px 10px;
-      background: rgba(15,23,42,0.9);
-      border: 1px dashed rgba(148,163,184,0.5);
+      padding: 5px 12px;
+      border: 1px dashed var(--border-subtle);
+      background: #f9fafb;
+      max-width: 260px;
       font-size: 11px;
       color: var(--muted);
-      max-width: 230px;
-      white-space: nowrap;
-      text-overflow: ellipsis;
       overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
 
     .id-chip strong {
@@ -213,53 +136,54 @@
 
     .btn {
       border-radius: 999px;
-      border: none;
-      padding: 8px 16px;
-      font-size: 13px;
+      border: 1px solid var(--border-subtle);
+      padding: 6px 12px;
+      font-size: 12px;
       cursor: pointer;
-      background: var(--accent-gradient);
-      color: white;
+      background: #ffffff;
+      color: var(--text);
       display: inline-flex;
       align-items: center;
-      justify-content: center;
       gap: 6px;
-      box-shadow: 0 10px 30px rgba(56,189,248,0.5);
-      transition: transform 0.1s ease, box-shadow 0.1s ease, filter 0.1s ease;
+      transition: background 0.12s ease, border-color 0.12s ease, transform 0.08s ease;
     }
 
     .btn:hover {
+      background: #f3f4f6;
+      border-color: #d1d5db;
       transform: translateY(-1px);
-      filter: brightness(1.05);
-      box-shadow: 0 14px 35px rgba(56,189,248,0.55);
+    }
+
+    .btn-primary {
+    background: linear-gradient(90deg, #6366f1, #8b5cf6);
+    color: #ffffff;
+    border-color: transparent;
+    box-shadow: 0 8px 18px rgba(99,102,241,0.35);
+    }
+
+    .btn-primary:hover {
+    background: linear-gradient(90deg, #4f46e5, #7c3aed);
+    box-shadow: 0 10px 22px rgba(79,70,229,0.45);
     }
 
     .btn-ghost {
       background: transparent;
-      color: var(--muted);
-      border: 1px solid rgba(148,163,184,0.4);
-      box-shadow: none;
     }
 
-    .btn-ghost:hover {
-      border-color: var(--accent);
-      color: var(--accent-strong);
-      filter: none;
-      box-shadow: 0 6px 18px rgba(15,23,42,0.5);
+    .btn-sm {
+      padding: 5px 11px;
+      font-size: 12px;
     }
+
+    /* APP BODY / PAGES --------------------------------------------- */
 
     .app-body {
-      margin-top: 10px;
-      border-radius: 18px;
-      background: linear-gradient(135deg, rgba(15,23,42,0.95), rgba(15,23,42,0.98));
-      padding: 14px 14px 16px;
-      border: 1px solid rgba(15,23,42,0.9);
+      margin-top: 4px;
     }
-
-    /* PAGE SYSTEM */
 
     .page-container {
       position: relative;
-      min-height: 460px;
+      min-height: 440px;
     }
 
     .page {
@@ -270,144 +194,131 @@
       display: block;
     }
 
-    /* MENU PAGE */
+    /* MENU PAGE ---------------------------------------------------- */
 
     .menu-layout {
       display: grid;
-      grid-template-columns: minmax(0, 1.15fr) minmax(0, 1.35fr);
-      gap: 18px;
+      grid-template-columns: minmax(0, 1.1fr) minmax(0, 1.2fr);
+      gap: 24px;
       align-items: stretch;
-    }   
+    }
 
     .menu-hero {
-    padding: 18px 22px;
-    border-radius: 18px;
-    background: radial-gradient(circle at top, rgba(56,189,248,0.24), transparent 60%), var(--panel-soft);
-    border: 1px solid rgba(148,163,184,0.5);
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-    position: relative;
-    min-height: 230px;
-    overflow: visible;
+      padding: 20px 22px;
+      border-radius: 18px;
+      border: 1px solid var(--border-subtle);
+      background: #ffffff;
+      display: grid;
+      grid-template-columns: minmax(0, 1.4fr) 180px;
+      gap: 16px;
+      align-items: center;
     }
 
-    /* text column stays on the left */
-    .hero-left {
-    max-width: 60%;
+    .menu-hero-text h2 {
+      margin: 0 0 6px;
+      font-size: 22px;
     }
 
-    .menu-hero h2 {
-      margin: 0;
-      font-size: 20px;
-    }
-
-    .menu-hero p {
-      margin: 0;
+    .menu-hero-text p {
+      margin: 0 0 14px;
       font-size: 13px;
       color: var(--muted);
+      max-width: 480px;
     }
 
-    /* NEW: make Snoopy a little sticker in the corner */
-    .menu-plane-frame {
-    position: absolute;
-    right: 24px;
-    bottom: 18px;
-    padding: 6px 8px 4px;
-    border-radius: 16px;
-    background: radial-gradient(circle at top,
-                rgba(15,23,42,0.98),
-                rgba(15,23,42,0.95));
-    border: 1px solid rgba(56,189,248,0.25);
-    box-shadow: 0 8px 18px rgba(15,23,42,0.7);
-    transform: rotate(-3deg);
+    .menu-metadata {
+      font-size: 12px;
+      color: var(--muted);
+      margin-bottom: 12px;
     }
 
-    [data-theme="light"] .menu-plane-frame {
-    background: #ffffff;
-    box-shadow: 0 10px 20px rgba(15,23,42,0.18);
-    }
-
-    /* smaller gif so it doesn't dominate */
-    .menu-plane {
-    display: block;
-    width: 110px;
-    height: auto;
-    border-radius: 12px;
-    image-rendering: auto;
-    }
-
-    /* softer caption */
-    .menu-plane-caption {
-    margin-top: 3px;
-    text-align: center;
-    font-size: 10px;
-    color: var(--muted);
-    }
-
-    .pill-row {
+    .menu-tag-row {
       display: flex;
       flex-wrap: wrap;
       gap: 6px;
-      margin-top: 6px;
+      font-size: 11px;
     }
 
-    .pill {
+    .menu-tag {
       border-radius: 999px;
-      padding: 4px 9px;
-      font-size: 11px;
-      border: 1px solid rgba(148,163,184,0.38);
-      color: var(--muted);
+      padding: 3px 8px;
+      border: 1px solid var(--border-subtle);
+      background: var(--panel-soft);
     }
 
-    .menu-actions {
+    .menu-cta-row {
       display: flex;
-      align-items: center;
+      flex-wrap: wrap;
       gap: 8px;
-      margin-top: 10px;
+      margin-top: 14px;
+      margin-bottom: 10px;
     }
 
-    .menu-note {
+    .menu-tip {
       font-size: 11px;
       color: var(--muted);
+      margin-top: 4px;
+    }
+
+    .snoopy-card {
+      border-radius: 18px;
+      border: 1px solid var(--border-subtle);
+      background: #f9fafb;
+      padding: 10px;
+      text-align: center;
+      font-size: 11px;
+      color: var(--muted);
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .snoopy-card img {
+      max-width: 140px;
+      width: 100%;
+      display: block;
+      border-radius: 12px;
+      background: #ffffff;
+      border: 1px solid var(--border-subtle);
     }
 
     .menu-grid {
-      padding: 16px 16px 14px;
+      padding: 18px 18px 16px;
       border-radius: 18px;
-      background: radial-gradient(circle at top right, rgba(56,189,248,0.18), transparent 60%), var(--panel-soft);
-      border: 1px solid rgba(148,163,184,0.38);
+      border: 1px solid var(--border-subtle);
+      background: #ffffff;
       display: grid;
       grid-template-columns: repeat(2, minmax(0, 1fr));
       gap: 10px;
     }
 
     .tile {
-      position: relative;
-      border-radius: 14px;
-      background: radial-gradient(circle at top left, rgba(56,189,248,0.16), transparent 70%), rgba(15,23,42,0.95);
-      border: 1px solid rgba(148,163,184,0.4);
-      padding: 10px 11px 11px;
-      cursor: pointer;
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-      transition: transform 0.12s ease, box-shadow 0.12s ease, border-color 0.12s ease, background 0.12s ease;
-      overflow: hidden;
+    border-radius: 14px;
+    border: 1px solid var(--border-subtle);
+    padding: 10px 11px 11px;
+    background: #f9fafb;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    transition: background 0.12s ease, border-color 0.12s ease, transform 0.08s ease, box-shadow 0.12s ease;
+    font-size: 12px;
     }
 
     .tile:hover {
-      transform: translateY(-2px);
-      border-color: var(--accent);
-      box-shadow: 0 14px 32px rgba(15,23,42,0.9);
-      background: radial-gradient(circle at top left, rgba(56,189,248,0.22), transparent 70%), rgba(15,23,42,0.98);
+    background: var(--accent-soft);
+    border-color: var(--accent);
+    box-shadow: 0 10px 22px rgba(99,102,241,0.20);
+    transform: translateY(-2px);
     }
 
     .tile-label {
-      font-size: 11px;
-      color: var(--muted);
+      font-size: 10px;
       text-transform: uppercase;
-      letter-spacing: 0.09em;
+      letter-spacing: 0.12em;
+      color: var(--muted);
     }
 
     .tile-title {
@@ -421,40 +332,20 @@
     }
 
     .tile-tag {
-      align-self: flex-start;
-      margin-top: 4px;
-      font-size: 10px;
-      padding: 3px 7px;
-      border-radius: 999px;
-      background: rgba(15,23,42,0.9);
-      border: 1px solid rgba(148,163,184,0.45);
+      font-size: 11px;
+      margin-top: 2px;
       color: var(--muted);
     }
 
-    .tile-corner {
-      position: absolute;
-      right: -12px;
-      bottom: -20px;
-      width: 40px;
-      height: 40px;
-      border-radius: 999px;
-      background: radial-gradient(circle, rgba(56,189,248,0.45), transparent 60%);
-      opacity: 0.5;
-      pointer-events: none;
-    }
-
-    /* WORKSPACE PAGE */
+    /* WORKSPACE PAGE ----------------------------------------------- */
 
     .workspace-header {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      gap: 10px;
       margin-bottom: 10px;
-      padding: 6px 8px 4px;
-      border-radius: 14px;
-      background: linear-gradient(135deg, rgba(15,23,42,0.95), rgba(15,23,42,1));
-      border: 1px solid rgba(15,23,42,0.9);
+      padding-bottom: 10px;
+      border-bottom: 1px solid var(--border-subtle);
     }
 
     .workspace-header-left {
@@ -466,12 +357,12 @@
     .page-chip {
       font-size: 11px;
       text-transform: uppercase;
-      letter-spacing: 0.09em;
+      letter-spacing: 0.16em;
       color: var(--muted);
     }
 
     .page-title {
-      font-size: 15px;
+      font-size: 18px;
       font-weight: 600;
     }
 
@@ -486,218 +377,76 @@
       gap: 8px;
     }
 
-    .workspace-layout {
-      margin-top: 10px;
-      display: flex;
-      flex-direction: column;
-      gap: 10px;       /* full-width stack: tabs row + workspace-main */
-    }
-
-    .workspace-nav-row {
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-      padding: 2px 2px 0;
-    }
-
     .breadcrumb {
-      display: flex;
-      align-items: center;
-      gap: 4px;
-      font-size: 11px;
+      font-size: 12px;
       color: var(--muted);
+      margin-bottom: 6px;
     }
 
-    .crumb-home {
-      cursor: pointer;
+    .breadcrumb span {
+      margin: 0 4px;
+    }
+
+    .breadcrumb button {
+      background: none;
+      border: none;
+      padding: 0;
+      font-size: 12px;
       color: var(--accent-strong);
+      cursor: pointer;
     }
-
-    .crumb-home:hover {
-      text-decoration: underline;
-    }
-
-    .crumb-sep {
-      opacity: 0.6;
-    }
-
-    .crumb-current {
-      color: var(--text);
-      opacity: 0.9;
-    }
-
-/* --- Workspace top tab bar --- */
 
     .workspace-tabs {
-    margin-top: 10px;
-    padding: 6px 4px 10px;
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 14px;
     }
 
     .workspace-tab {
     border-radius: 999px;
-    border: 1px solid rgba(148,163,184,0.5);
-    padding: 6px 14px;
+    padding: 6px 12px;
     font-size: 12px;
-    background:
-        radial-gradient(circle at top, rgba(15,23,42,0.95), rgba(15,23,42,1));
-    color: var(--muted);
+    border: 1px solid var(--border-subtle);
+    background: #f9fafb;
     cursor: pointer;
-    outline: none;
-    white-space: nowrap;
-    box-shadow: 0 8px 18px rgba(15,23,42,0.75);
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    transition:
-        background 0.15s ease,
-        color 0.15s ease,
-        transform 0.12s ease,
-        box-shadow 0.15s ease,
-        border-color 0.15s ease;
+    color: var(--muted);
+    transition: background 0.12s ease, border-color 0.12s ease, color 0.12s ease, transform 0.08s ease, box-shadow 0.12s ease;
     }
 
     .workspace-tab:hover {
-    transform: translateY(-1px);
+    background: var(--accent-soft);
     border-color: var(--accent);
-    color: var(--text);
-    box-shadow: 0 12px 26px rgba(15,23,42,0.9);
+    transform: translateY(-1px);
     }
 
     .workspace-tab.active {
-    color: var(--text);
-    border-color: var(--accent);
-    background:
-        linear-gradient(135deg, rgba(56,189,248,0.16), rgba(34,197,94,0.08)),
-        radial-gradient(circle at top left, rgba(56,189,248,0.25), rgba(15,23,42,1));
-    box-shadow: 0 14px 32px rgba(8,47,73,0.95);
-    }
-
-    .workspace-tab:focus-visible {
-    box-shadow:
-        0 0 0 1px rgba(15,23,42,1),
-        0 0 0 2px var(--accent),
-        0 14px 32px rgba(8,47,73,0.95);
-    }
-
-    .nav-btn {
-      border-radius: 999px;
-      padding: 6px 10px;
-      font-size: 11px;
-      border: 1px solid rgba(148,163,184,0.4);
-      background: radial-gradient(circle at top,
-                 rgba(15,23,42,0.9),
-                 rgba(15,23,42,1));
-      color: var(--muted);
-      cursor: pointer;
-      display: inline-flex;
-      align-items: center;
-      gap: 4px;
-      transition: background 0.12s ease, color 0.12s ease,
-                  border-color 0.12s ease, transform 0.12s ease;
-    }
-
-    .nav-btn:hover {
-      border-color: var(--accent);
-      color: var(--accent-strong);
-      transform: translateY(-1px);
-      box-shadow: 0 8px 20px rgba(15,23,42,0.6);
-    }
-
-    .nav-btn.active {
-      background: linear-gradient(135deg,
-                  rgba(56,189,248,0.18),
-                  rgba(15,23,42,0.98));
-      color: var(--accent-strong);
-      border-color: rgba(56,189,248,0.7);
-    }
-
-    .sidebar {
-      border-radius: 14px;
-      background: radial-gradient(circle at top, rgba(15,23,42,0.9), rgba(15,23,42,1));
-      border: 1px solid rgba(15,23,42,0.95);
-      padding: 8px;
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-    }
-
-    .sidebar-title {
-      font-size: 11px;
-      color: var(--muted);
-      text-transform: uppercase;
-      letter-spacing: 0.09em;
-      margin-bottom: 4px;
-      padding: 0 4px;
-    }
-
-    .menu-btn {
-      border-radius: 10px;
-      padding: 8px 8px;
-      border: none;
-      background: transparent;
-      color: var(--muted);
-      display: flex;
-      flex-direction: column;
-      align-items: flex-start;
-      cursor: pointer;
-      gap: 3px;
-      font-size: 12px;
-      text-align: left;
-      transition: background 0.12s ease, color 0.12s ease, transform 0.12s ease;
-    }
-
-    .menu-btn span.label {
-      font-weight: 500;
-      color: var(--text);
-    }
-
-    .menu-btn span.desc {
-      font-size: 11px;
-      color: var(--muted);
-    }
-
-    .menu-btn.active {
-      background: linear-gradient(135deg, rgba(56,189,248,0.14), rgba(15,23,42,0.98));
-      color: var(--accent-strong);
-      transform: translateY(-1px);
-    }
-
-    .menu-btn.active span.label {
-      color: var(--accent-strong);
+    background: linear-gradient(90deg, #6366f1, #8b5cf6);
+    border-color: transparent;
+    color: #ffffff;
+    box-shadow: 0 8px 18px rgba(99,102,241,0.35);
     }
 
     .workspace-main {
-      border-radius: 16px;
-      background: var(--panel-strong);
-      border: 1px solid rgba(15,23,42,0.95);
-      padding: 10px 12px 12px;
+      border-radius: 18px;
+      border: 1px solid var(--border-subtle);
+      background: #ffffff;
+      padding: 16px 18px 16px;
       display: grid;
-      grid-template-columns: minmax(0, 1.1fr) minmax(0, 1.2fr);
-      gap: 12px;
+      grid-template-columns: minmax(0, 1.05fr) minmax(0, 1.25fr);
+      gap: 18px;
     }
 
     .forms-pane {
-      border-radius: 12px;
-      background: radial-gradient(circle at top left, rgba(15,23,42,0.95), rgba(15,23,42,1));
-      border: 1px solid rgba(15,23,42,0.9);
-      padding: 10px 10px 12px;
-      overflow-y: auto;
-      max-height: 380px;
+      border-right: 1px solid var(--border-subtle);
+      padding-right: 16px;
     }
 
     .output-pane {
-      border-radius: 12px;
-      background: radial-gradient(circle at top right, rgba(15,23,42,0.95), rgba(15,23,42,1));
-      border: 1px solid rgba(15,23,42,0.92);
-      padding: 10px 10px 12px;
+      padding-left: 4px;
       display: flex;
       flex-direction: column;
-      gap: 6px;
-      max-height: 380px;
-      overflow: hidden;
+      gap: 8px;
     }
 
     .output-header {
@@ -712,19 +461,20 @@
     }
 
     .output-subtitle {
-      font-size: 11px;
+      font-size: 12px;
       color: var(--muted);
     }
 
     .output-body {
       margin-top: 6px;
-      border-radius: 10px;
-      padding: 8px 8px;
-      background: rgba(15,23,42,0.98);
-      border: 1px dashed rgba(148,163,184,0.4);
+      border-radius: 12px;
+      padding: 10px;
+      background: var(--panel-soft);
+      border: 1px dashed var(--border-subtle);
       font-size: 12px;
-      overflow: auto;
       flex: 1;
+      min-height: 220px;
+      overflow: auto;
     }
 
     .output-body.placeholder {
@@ -732,9 +482,10 @@
       align-items: center;
       justify-content: center;
       color: var(--muted);
-      font-size: 12px;
       text-align: center;
     }
+
+    /* PANELS ------------------------------------------------------- */
 
     .panel {
       display: none;
@@ -744,18 +495,14 @@
       display: block;
     }
 
-    .panel-header {
-      margin-bottom: 6px;
-    }
-
     .panel-header h3 {
       margin: 0;
-      font-size: 14px;
+      font-size: 15px;
     }
 
     .panel-header p {
-      margin: 2px 0 0;
-      font-size: 11px;
+      margin: 3px 0 10px;
+      font-size: 12px;
       color: var(--muted);
     }
 
@@ -763,7 +510,7 @@
       margin-top: 8px;
       display: flex;
       flex-direction: column;
-      gap: 6px;
+      gap: 8px;
     }
 
     .field {
@@ -779,19 +526,18 @@
 
     .field input {
       border-radius: 999px;
-      border: 1px solid rgba(51,65,85,0.9);
+      border: 1px solid var(--border-subtle);
       padding: 7px 10px;
       font-size: 12px;
-      background: rgba(15,23,42,0.98);
+      background: #ffffff;
       color: var(--text);
       outline: none;
-      transition: border-color 0.12s ease, box-shadow 0.12s ease, background 0.12s ease;
+      transition: border-color 0.12s ease, box-shadow 0.12s ease;
     }
 
     .field input:focus {
       border-color: var(--accent);
-      box-shadow: 0 0 0 1px rgba(56,189,248,0.5);
-      background: rgba(15,23,42,1);
+      box-shadow: 0 0 0 1px var(--accent-soft);
     }
 
     .input-row {
@@ -810,26 +556,32 @@
       gap: 6px;
     }
 
-    .btn-sm {
-      padding: 6px 12px;
-      font-size: 12px;
-    }
-
     .hint-row {
       margin-top: 6px;
       font-size: 11px;
       color: var(--muted);
     }
 
+    .section-title {
+      font-size: 12px;
+      font-weight: 600;
+      margin-top: 12px;
+      border-top: 1px solid var(--border-subtle);
+      padding-top: 8px;
+    }
+
+    /* TABLES ------------------------------------------------------- */
+
     table {
       width: 100%;
       border-collapse: collapse;
-      font-size: 11.5px;
+      font-size: 12px;
+      background: #ffffff;
     }
 
     th, td {
-      padding: 5px 6px;
-      border-bottom: 1px solid rgba(30,41,59,0.85);
+      padding: 6px 8px;
+      border-bottom: 1px solid var(--border-subtle);
       text-align: left;
       white-space: nowrap;
     }
@@ -837,17 +589,63 @@
     th {
       font-size: 11px;
       text-transform: uppercase;
-      letter-spacing: 0.07em;
+      letter-spacing: 0.08em;
       color: var(--muted);
-      position: sticky;
-      top: 0;
-      background: rgba(15,23,42,0.98);
+      background: #f9fafb;
       cursor: pointer;
     }
 
-    td {
+    tr:nth-child(even) td {
+      background: #fcfcfd;
+    }
+
+    /* SUMMARY CARD ------------------------------------------------- */
+
+    .summary-card {
+    margin-top: 10px;
+    padding: 9px 10px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #eef2ff, #fdf2ff);
+    border: 1px solid rgba(99,102,241,0.45);
+    }
+
+    .summary-title {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: var(--accent-strong);
+      margin-bottom: 4px;
+    }
+
+    .summary-body {
+      font-size: 12px;
       color: var(--text);
     }
+
+    /* STATUS BADGES ------------------------------------------------ */
+
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 2px 7px;
+      border-radius: 999px;
+      font-size: 11px;
+      border: 1px solid var(--border-subtle);
+    }
+
+    .status-active {
+      background: #ecfdf3;
+      border-color: #bbf7d0;
+      color: #16a34a;
+    }
+
+    .status-inactive {
+      background: #f3f4f6;
+      border-color: var(--border-subtle);
+      color: var(--muted);
+    }
+
+    /* TOASTS & LOADER ---------------------------------------------- */
 
     .toast-container {
       position: fixed;
@@ -860,8 +658,8 @@
     }
 
     .toast {
-      min-width: 220px;
-      max-width: 320px;
+      min-width: 230px;
+      max-width: 340px;
       border-radius: 12px;
       padding: 8px 10px;
       font-size: 12px;
@@ -869,25 +667,28 @@
       justify-content: space-between;
       gap: 8px;
       align-items: center;
-      background: rgba(15,23,42,0.98);
-      border: 1px solid rgba(148,163,184,0.6);
-      box-shadow: 0 10px 25px rgba(15,23,42,0.8);
+      background: #111827;
+      color: #f9fafb;
+      border: 1px solid #111827;
+      box-shadow: 0 18px 40px rgba(15,23,42,0.4);
       opacity: 0;
       transform: translateY(6px);
       transition: opacity 0.2s ease, transform 0.2s ease;
     }
 
-    .toast.show {
-      opacity: 1;
-      transform: translateY(0);
-    }
-
     .toast-success {
-      border-color: rgba(34,197,94,0.6);
+      background: #16a34a;
+      border-color: #15803d;
     }
 
     .toast-error {
-      border-color: rgba(248,113,113,0.8);
+      background: #b91c1c;
+      border-color: #991b1b;
+    }
+
+    .toast.show {
+      opacity: 1;
+      transform: translateY(0);
     }
 
     .toast-message {
@@ -897,7 +698,7 @@
     .toast-close {
       border: none;
       background: transparent;
-      color: var(--muted);
+      color: #fee2e2;
       cursor: pointer;
       font-size: 14px;
       padding: 0 0 0 4px;
@@ -906,7 +707,7 @@
     #loadingOverlay {
       position: fixed;
       inset: 0;
-      background: radial-gradient(circle at top, rgba(15,23,42,0.85), rgba(15,23,42,0.98));
+      background: rgba(249,250,251,0.8);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -922,28 +723,24 @@
     }
 
     .loader {
-      width: 42px;
-      height: 42px;
+      width: 40px;
+      height: 40px;
       border-radius: 999px;
-      border: 3px solid rgba(148,163,184,0.35);
-      border-top-color: var(--accent-strong);
+      border: 3px solid #e5e7eb;
+      border-top-color: var(--accent);
       animation: spin 0.7s linear infinite;
-    }
-
-    .loader.show {
-      display: block;
     }
 
     @keyframes spin {
       to { transform: rotate(360deg); }
     }
 
-    /* Modal */
+    /* MODAL -------------------------------------------------------- */
 
     .modal {
       position: fixed;
       inset: 0;
-      background: rgba(15,23,42,0.8);
+      background: rgba(15,23,42,0.45);
       display: none;
       align-items: center;
       justify-content: center;
@@ -958,10 +755,10 @@
       width: 100%;
       max-width: 360px;
       border-radius: 18px;
-      background: var(--panel-strong);
-      border: 1px solid rgba(148,163,184,0.55);
-      box-shadow: 0 18px 45px rgba(15,23,42,0.95);
-      padding: 14px 14px 12px;
+      background: #ffffff;
+      border: 1px solid var(--border-subtle);
+      box-shadow: 0 26px 60px rgba(15,23,42,0.35);
+      padding: 14px 16px 14px;
     }
 
     .modal-header {
@@ -973,7 +770,7 @@
     }
 
     .modal-title {
-      font-size: 14px;
+      font-size: 15px;
       font-weight: 600;
     }
 
@@ -981,7 +778,7 @@
       border: none;
       background: transparent;
       cursor: pointer;
-      font-size: 16px;
+      font-size: 18px;
       color: var(--muted);
     }
 
@@ -993,7 +790,7 @@
     .info-grid {
       display: grid;
       grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-      gap: 6px 10px;
+      gap: 6px 12px;
       font-size: 12px;
     }
 
@@ -1012,603 +809,566 @@
       font-size: 12px;
     }
 
-    .status-badge {
-    display: inline-flex;
-    align-items: center;
-    padding: 2px 7px;
-    border-radius: 999px;
-    font-size: 11px;
-    border: 1px solid rgba(148,163,184,0.55);
-    }
-
-    .status-active {
-    background: rgba(34,197,94,0.14);
-    border-color: rgba(34,197,94,0.8);
-    color: #4ade80;
-    }
-
-    .status-inactive {
-    background: rgba(148,163,184,0.12);
-    border-color: rgba(148,163,184,0.8);
-    color: var(--muted);
-    }
-
-    .summary-card::before {
-    content: "";
-    position: absolute;
-    inset: 0;
-    background: radial-gradient(circle at top left,
-                rgba(56,189,248,0.22),
-                transparent 55%);
-    opacity: 0.9;
-    pointer-events: none;
-    }
-
-    /* --- SUMMARY CARD UPGRADE --- */
-
-    .summary-card {
-    margin-top: 14px;
-    padding: 14px 16px;
-    border-radius: 14px;
-
-    /* softer but brighter glow */
-    background: linear-gradient(
-        135deg,
-        rgba(56,189,248,0.18),
-        rgba(15,23,42,0.95)
-    );
-
-    border: 1px solid rgba(56,189,248,0.55);
-    box-shadow: 0 14px 35px rgba(8,47,73,0.75);
-
-    /* Give the text more room */
-    width: 100%;
-    max-width: 680px;
-    }
-
-    .summary-title {
-    font-size: 12px;
-    letter-spacing: 0.09em;
-    text-transform: uppercase;
-    color: var(--accent-strong);
-    margin-bottom: 6px;
-    }
-
-    .summary-body {
-    font-size: 13px;
-    line-height: 1.45;
-    color: var(--text);
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-    }
-
-    /* Make emojis bigger and aligned */
-    .summary-body div {
-    display: flex;
-    gap: 6px;
-    align-items: flex-start;
-    }
-
-    .summary-body div::before {
-    font-size: 14px;
-    }
-
-    .ripple {
-      position: absolute;
-      border-radius: 50%;
-      transform: scale(0);
-      animation: ripple 0.45s linear;
-      background: rgba(248,250,252,0.25);
-      pointer-events: none;
-    }
-
-    .sidebar.hidden {
-      display: none !important;
-    }
-
-    @keyframes ripple {
-      to {
-        transform: scale(4);
-        opacity: 0;
-      }
-    }
+    /* RESPONSIVE --------------------------------------------------- */
 
     @media (max-width: 960px) {
+      body {
+        padding: 16px;
+      }
       .menu-layout {
         grid-template-columns: minmax(0, 1fr);
       }
-      .workspace-layout {
+      .menu-hero {
         grid-template-columns: minmax(0, 1fr);
       }
       .workspace-main {
         grid-template-columns: minmax(0, 1fr);
       }
-      .forms-pane, .output-pane {
-        max-height: none;
+      .forms-pane {
+        border-right: none;
+        border-bottom: 1px solid var(--border-subtle);
+        padding-right: 0;
+        padding-bottom: 12px;
+        margin-bottom: 12px;
+      }
+      .output-pane {
+        padding-left: 0;
       }
       .app-shell {
-        padding: 14px 12px 16px;
+        padding: 16px;
+        border-radius: 18px;
+      }
+      .app-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+      }
+      .header-right {
+        align-self: stretch;
+        justify-content: space-between;
       }
     }
   </style>
 </head>
 <body>
+
+<!-- rest of your HTML (body content + scripts) stays exactly the same -->
+
 <canvas id="bgCanvas"></canvas>
 
-<div id="app">
-  <div class="app-shell">
-    <header class="app-header">
-      <div class="app-title">
-        <div class="logo-circle">✈️</div>
-        <div class="app-title-main">
-          <h1>Air Travel Database</h1>
-          <p class="subtitle">CIS 22C Honors · C++ Crow Web App</p>
-          <div class="chip-row">
-            <div class="chip">Backed by OpenFlights airline / airport / route data</div>
-            <div class="badge-cta">Use the menu to choose a report</div>
-          </div>
-        </div>
-      </div>
+<div class="app-shell">
+  <header class="app-header">
+    <div class="brand-block">
+      <div class="brand-line-1">CIS 22C HONORS</div>
+      <div class="brand-line-2">Air Travel Database</div>
+      <div class="brand-line-3">C++ · Crow · airline / airport / route data</div>
+    </div>
       <div class="header-right">
-        <button class="icon-btn" onclick="toggleTheme()">
-          <span id="themeIcon">🌙</span>
+        <div class="chip">Powered by a custom C++ backend on port 8080</div>
+
+        <button class="btn btn-sm" onclick="loadId()">
+            <span>👤</span><span>ID</span>
         </button>
-        <button class="icon-btn" onclick="loadId()">
-          <span>👤</span><span>ID</span>
-        </button>
+
+        <a href="/code" class="btn btn-sm btn-ghost">
+        View Code
+        </a>      
+
         <div class="id-chip">
-          <span id="headerIdText"><strong>Student ID</strong> · click “ID” to load from backend</span>
+            <span id="headerIdText">
+            <strong>Student ID</strong> · click “ID” to load from backend
+            </span>
         </div>
       </div>
-    </header>
+  </header>
 
-    <div class="app-body">
-      <div class="page-container">
-        <!-- MENU PAGE -->
-        <section id="page-menu" class="page active">
-          <div class="menu-layout">
-            <div class="menu-hero">
-                <div class="hero-left">
-                    <h2>Welcome to the Air Travel Dashboard</h2>
-                    <p>This app is powered by a custom C++ backend and Crow on port 8080. Choose an action to explore airlines, airports, routes, or edit data in-memory.</p>
-
-                    <div class="tag-row">
-                    <span class="tag">C++ • Crow • JSON</span>
-                    <span class="tag">Hash tables • Vectors</span>
-                    <span class="tag">Airlines • Airports • Routes</span>
-                    </div>
-
-                    <div class="button-row">
-                    <button class="primary" onclick="gotoSection('airline-lookup')">Start with Airline Lookup</button>
-                    <button class="primary-outline" onclick="gotoSection('onehop')">Try One-Hop Route Finder</button>
-                    </div>
-
-                    <p class="tip">Tip: Use the light/dark toggle in the top-right to switch themes.</p>
-                </div>
-
-                <div class="menu-plane-frame">
-                    <img src="/static/snoopy-plane.gif" class="menu-plane" alt="Flying plane">
-                    <div class="menu-plane-caption">Flying into your C++ backend ✈️</div>
-                </div>
+  <div class="app-body">
+    <div class="page-container">
+      <!-- MENU PAGE ------------------------------------------------>
+      <section id="page-menu" class="page active">
+        <div class="menu-layout">
+          <div class="menu-hero">
+            <div class="menu-hero-text">
+              <h2>Hello.</h2>
+              <p>
+                Welcome to your air-travel playground. Use this web app to look up airlines
+                and airports, explore routes, and edit in-memory data from your C++ backend.
+              </p>
+              <div class="menu-metadata">
+                Today at the dashboard · backed by OpenFlights data.
+              </div>
+              <div class="menu-tag-row">
+                <span class="menu-tag">C++ · Crow · JSON</span>
+                <span class="menu-tag">Hash tables · vectors</span>
+                <span class="menu-tag">Airlines · airports · routes</span>
+              </div>
+              <div class="menu-cta-row">
+                <button class="btn btn-primary" onclick="openAction('airline')">Start with Airline Lookup</button>
+                <button class="btn btn-ghost" onclick="openAction('one-hop')">Try One-Hop Route Finder</button>
+              </div>
+              <div class="menu-tip">
+                Tip: pick an action here, then use the tabs inside the workspace to switch tools.
+              </div>
             </div>
-
-            <div class="menu-grid">
-              <div class="tile" onclick="openAction('airline')">
-                <div class="tile-label">Lookup</div>
-                <div class="tile-title">Airline by IATA</div>
-                <div class="tile-desc">Fetch airline metadata using a 2-letter IATA code.</div>
-                <div class="tile-tag">/airline?iata=XX</div>
-                <div class="tile-corner"></div>
-              </div>
-              <div class="tile" onclick="openAction('airport')">
-                <div class="tile-label">Lookup</div>
-                <div class="tile-title">Airport by IATA</div>
-                <div class="tile-desc">Search airport location, city, and coordinates.</div>
-                <div class="tile-tag">/airport?iata=XXX</div>
-                <div class="tile-corner"></div>
-              </div>
-              <div class="tile" onclick="openAction('one-hop')">
-                <div class="tile-label">Planner</div>
-                <div class="tile-title">One-Hop Route Finder</div>
-                <div class="tile-desc">Find S → X → D routes where each leg has 0 stops.</div>
-                <div class="tile-tag">shortest 2-leg routes</div>
-                <div class="tile-corner"></div>
-              </div>
-              <div class="tile" onclick="openAction('airline-routes')">
-                <div class="tile-label">Report</div>
-                <div class="tile-title">Airline Route Report</div>
-                <div class="tile-desc">List airports served by a given airline.</div>
-                <div class="tile-tag">/airline-routes</div>
-                <div class="tile-corner"></div>
-              </div>
-              <div class="tile" onclick="openAction('airport-routes')">
-                <div class="tile-label">Report</div>
-                <div class="tile-title">Airport Route Report</div>
-                <div class="tile-desc">List airlines that serve a given airport.</div>
-                <div class="tile-tag">/airport-routes</div>
-                <div class="tile-corner"></div>
-              </div>
-              <div class="tile" onclick="openAction('admin')">
-                <div class="tile-label">Admin</div>
-                <div class="tile-title">In-Memory Data Editor</div>
-                <div class="tile-desc">Add or update airlines, airports, and routes.</div>
-                <div class="tile-tag">honors feature</div>
-                <div class="tile-corner"></div>
-              </div>
+            <div class="snoopy-card">
+              <img src="/static/snoopy-plane.gif" alt="Flying dog" />
+              <div>Flying into your C++ backend ✈️</div>
             </div>
           </div>
-        </section>
 
-        <!-- WORKSPACE PAGE -->
-        <section id="page-workspace" class="page">
-            <div class="workspace-header">
-                <div class="workspace-header-left">
-                <div class="page-chip" id="pageChipText">Lookup Airline</div>
-                <div class="page-title">Action Workspace</div>
-                <div class="page-subtitle">
-                    Use the tabs above to switch actions. Results appear on the right.
-                </div>
-                </div>
-                <div class="workspace-header-right">
-                <button class="btn btn-sm btn-ghost" onclick="goBackToMenu()">← Back to Menu</button>
-                </div>
+          <div class="menu-grid">
+            <div class="tile" onclick="openAction('airline')">
+              <div class="tile-label">Lookup</div>
+              <div class="tile-title">Airline by IATA</div>
+              <div class="tile-desc">Fetch airline metadata using a 2-letter code.</div>
+              <div class="tile-tag">Example: /airline?iata=AA</div>
             </div>
-
-            <div class="workspace-layout">
-                <!-- breadcrumb + top tabs -->
-                <div class="workspace-nav-row">
-                <div class="breadcrumb">
-                    <span class="crumb-home" onclick="goBackToMenu()">Menu</span>
-                    <span class="crumb-sep">›</span>
-                    <span class="crumb-current" id="breadcrumbCurrent">Lookup Airline</span>
-                </div>
-
-                <div class="workspace-tabs">
-                    <button class="nav-btn" data-panel="airline">Lookup Airline</button>
-                    <button class="nav-btn" data-panel="airport">Lookup Airport</button>
-                    <button class="nav-btn" data-panel="airline-routes">Airline Route Report</button>
-                    <button class="nav-btn" data-panel="airport-routes">Airport Route Report</button>
-                    <button class="nav-btn" data-panel="one-hop">One-Hop Routes</button>
-                    <button class="nav-btn" data-panel="all-airlines">All Airlines</button>
-                    <button class="nav-btn" data-panel="all-airports">All Airports</button>
-                    <button class="nav-btn" data-panel="admin">Admin / Data Editor</button>
-                </div>
-                </div>
-
-                <!-- main workspace (full width) -->
-                <div class="workspace-main">
-                <!-- forms -->
-                <div class="forms-pane">
-                    <!-- Airline lookup -->
-                    <section id="panel-airline" class="panel active">
-                    <div class="panel-header">
-                        <h3>Lookup Airline</h3>
-                        <p>Enter a 2-letter airline IATA code (e.g. AA, DL, UA).</p>
-                    </div>
-                    <div class="field-group">
-                        <div class="field">
-                        <label for="airlineInput">Airline IATA</label>
-                        <input id="airlineInput" class="iata-input" list="airlineList" placeholder="AA, DL, UA…" />
-                        </div>
-                    </div>
-                    <div class="panel-actions">
-                        <button class="btn btn-sm" onclick="lookupAirline()">Search</button>
-                        <button class="btn btn-sm btn-ghost" onclick="clearOutput()">Clear Result</button>
-                    </div>
-                    <div class="hint-row">
-                        Hint: start typing to use autocomplete loaded from <code>/airlines-by-iata</code>.
-                    </div>
-                    </section>
-
-                    <!-- Airport lookup -->
-                    <section id="panel-airport" class="panel">
-                    <div class="panel-header">
-                        <h3>Lookup Airport</h3>
-                        <p>Enter a 3-letter airport IATA code (e.g. SFO, LAX, JFK).</p>
-                    </div>
-                    <div class="field-group">
-                        <div class="field">
-                        <label for="airportInput">Airport IATA</label>
-                        <input id="airportInput" class="iata-input" list="airportList" placeholder="SFO, LAX, JFK…" />
-                        </div>
-                    </div>
-                    <div class="panel-actions">
-                        <button class="btn btn-sm" onclick="lookupAirport()">Search</button>
-                        <button class="btn btn-sm btn-ghost" onclick="clearOutput()">Clear Result</button>
-                    </div>
-                    <div class="hint-row">
-                        Try: SFO (San Francisco), LAX (Los Angeles), JFK (New York).
-                    </div>
-                    </section>
-
-                    <!-- Airline route report -->
-                    <section id="panel-airline-routes" class="panel">
-                    <div class="panel-header">
-                        <h3>Airline Route Report</h3>
-                        <p>List all airports served by a particular airline.</p>
-                    </div>
-                    <div class="field-group">
-                        <div class="field">
-                        <label for="airlineRouteInput">Airline IATA</label>
-                        <input id="airlineRouteInput" class="iata-input" list="airlineList" placeholder="AA, DL, UA…" />
-                        </div>
-                    </div>
-                    <div class="panel-actions">
-                        <button class="btn btn-sm" onclick="airlineRoutes()">Run Report</button>
-                        <button class="btn btn-sm btn-ghost" onclick="clearOutput()">Clear Result</button>
-                    </div>
-                    </section>
-
-                    <!-- Airport route report -->
-                    <section id="panel-airport-routes" class="panel">
-                    <div class="panel-header">
-                        <h3>Airport Route Report</h3>
-                        <p>List all airlines that serve a particular airport.</p>
-                    </div>
-                    <div class="field-group">
-                        <div class="field">
-                        <label for="airportRouteInput">Airport IATA</label>
-                        <input id="airportRouteInput" class="iata-input" list="airportList" placeholder="SFO, LAX, JFK…" />
-                        </div>
-                    </div>
-                    <div class="panel-actions">
-                        <button class="btn btn-sm" onclick="airportRoutes()">Run Report</button>
-                        <button class="btn btn-sm btn-ghost" onclick="clearOutput()">Clear Result</button>
-                    </div>
-                    </section>
-
-                    <!-- One-hop -->
-                    <section id="panel-one-hop" class="panel">
-                    <div class="panel-header">
-                        <h3>One-Hop Route Finder</h3>
-                        <p>Find all one-hop routes S → X → D, where each leg has 0 stops.</p>
-                    </div>
-                    <div class="field-group">
-                        <div class="input-row">
-                        <div class="field">
-                            <label for="oneHopSrcInput">Source IATA</label>
-                            <input id="oneHopSrcInput" class="iata-input" list="airportList" placeholder="SFO" />
-                        </div>
-                        <div class="field">
-                            <label for="oneHopDstInput">Destination IATA</label>
-                            <input id="oneHopDstInput" class="iata-input" list="airportList" placeholder="JFK" />
-                        </div>
-                        </div>
-                    </div>
-                    <div class="panel-actions">
-                        <button class="btn btn-sm" onclick="oneHop()">Find Routes</button>
-                        <button class="btn btn-sm btn-ghost" onclick="clearOutput()">Clear Result</button>
-                        <button class="btn btn-sm btn-ghost" onclick="prefillOneHop('SFO','JFK')">Example: SFO → JFK</button>
-                        <button class="btn btn-sm btn-ghost" onclick="prefillOneHop('MIA','BOS')">Example: MIA → BOS</button>
-                    </div>
-                    </section>
-
-                    <!-- All airlines -->
-                    <section id="panel-all-airlines" class="panel">
-                    <div class="panel-header">
-                        <h3>All Airlines</h3>
-                        <p>Show all airlines currently loaded, sorted by IATA.</p>
-                    </div>
-                    <div class="panel-actions">
-                        <button class="btn btn-sm" onclick="allAirlines()">Load Airlines</button>
-                        <button class="btn btn-sm btn-ghost" onclick="clearOutput()">Clear Result</button>
-                    </div>
-                    </section>
-
-                    <!-- All airports -->
-                    <section id="panel-all-airports" class="panel">
-                    <div class="panel-header">
-                        <h3>All Airports</h3>
-                        <p>Show all airports currently loaded, sorted by IATA.</p>
-                    </div>
-                    <div class="panel-actions">
-                        <button class="btn btn-sm" onclick="allAirports()">Load Airports</button>
-                        <button class="btn btn-sm btn-ghost" onclick="clearOutput()">Clear Result</button>
-                    </div>
-                    </section>
-
-                    <!-- Admin -->
-                    <section id="panel-admin" class="panel">
-                    <div class="panel-header">
-                        <h3>Admin / Data Editor</h3>
-                        <p>Modify airlines, airports, and routes in memory (no file write-back).</p>
-                    </div>
-
-                    <div class="field-group">
-                        <strong style="font-size:12px;">Airline – Add</strong>
-                        <div class="input-row">
-                        <div class="field">
-                            <label for="adminAirlineAddId">ID</label>
-                            <input id="adminAirlineAddId" type="number" />
-                        </div>
-                        <div class="field">
-                            <label for="adminAirlineAddIata">IATA</label>
-                            <input id="adminAirlineAddIata" class="iata-input" />
-                        </div>
-                        </div>
-                        <div class="field">
-                        <label for="adminAirlineAddName">Name</label>
-                        <input id="adminAirlineAddName" />
-                        </div>
-                        <div class="field">
-                        <label for="adminAirlineAddCountry">Country</label>
-                        <input id="adminAirlineAddCountry" />
-                        </div>
-                        <div class="field">
-                        <label><input type="checkbox" id="adminAirlineAddActive" /> Active</label>
-                        </div>
-                        <div class="panel-actions">
-                        <button class="btn btn-sm" onclick="adminAirlineAdd()">Add Airline</button>
-                        </div>
-                    </div>
-
-                    <div class="field-group">
-                        <strong style="font-size:12px;">Airline – Update</strong>
-                        <div class="field">
-                        <label for="adminAirlineUpdateId">Existing ID (required)</label>
-                        <input id="adminAirlineUpdateId" type="number" />
-                        </div>
-                        <div class="input-row">
-                        <div class="field">
-                            <label for="adminAirlineUpdateIata">New IATA (optional)</label>
-                            <input id="adminAirlineUpdateIata" class="iata-input" />
-                        </div>
-                        <div class="field">
-                            <label for="adminAirlineUpdateName">New Name (optional)</label>
-                            <input id="adminAirlineUpdateName" />
-                        </div>
-                        </div>
-                        <div class="field">
-                        <label for="adminAirlineUpdateCountry">New Country (optional)</label>
-                        <input id="adminAirlineUpdateCountry" />
-                        </div>
-                        <div class="field">
-                        <label><input type="checkbox" id="adminAirlineUpdateActive" /> Set Active = true</label>
-                        </div>
-                        <div class="panel-actions">
-                        <button class="btn btn-sm" onclick="adminAirlineUpdate()">Update Airline</button>
-                        </div>
-                    </div>
-
-                    <div class="field-group">
-                        <strong style="font-size:12px;">Airport – Add</strong>
-                        <div class="input-row">
-                        <div class="field">
-                            <label for="adminAirportAddId">ID</label>
-                            <input id="adminAirportAddId" type="number" />
-                        </div>
-                        <div class="field">
-                            <label for="adminAirportAddIata">IATA</label>
-                            <input id="adminAirportAddIata" class="iata-input" />
-                        </div>
-                        </div>
-                        <div class="field">
-                        <label for="adminAirportAddName">Name</label>
-                        <input id="adminAirportAddName" />
-                        </div>
-                        <div class="input-row">
-                        <div class="field">
-                            <label for="adminAirportAddCity">City</label>
-                            <input id="adminAirportAddCity" />
-                        </div>
-                        <div class="field">
-                            <label for="adminAirportAddCountry">Country</label>
-                            <input id="adminAirportAddCountry" />
-                        </div>
-                        </div>
-                        <div class="input-row">
-                        <div class="field">
-                            <label for="adminAirportAddLat">Latitude</label>
-                            <input id="adminAirportAddLat" type="number" step="0.000001" />
-                        </div>
-                        <div class="field">
-                            <label for="adminAirportAddLon">Longitude</label>
-                            <input id="adminAirportAddLon" type="number" step="0.000001" />
-                        </div>
-                        </div>
-                        <div class="panel-actions">
-                        <button class="btn btn-sm" onclick="adminAirportAdd()">Add Airport</button>
-                        </div>
-                    </div>
-
-                    <div class="field-group">
-                        <strong style="font-size:12px;">Airport – Update</strong>
-                        <div class="field">
-                        <label for="adminAirportUpdateId">Existing ID (required)</label>
-                        <input id="adminAirportUpdateId" type="number" />
-                        </div>
-                        <div class="input-row">
-                        <div class="field">
-                            <label for="adminAirportUpdateIata">New IATA</label>
-                            <input id="adminAirportUpdateIata" class="iata-input" />
-                        </div>
-                        <div class="field">
-                            <label for="adminAirportUpdateName">New Name</label>
-                            <input id="adminAirportUpdateName" />
-                        </div>
-                        </div>
-                        <div class="input-row">
-                        <div class="field">
-                            <label for="adminAirportUpdateCity">New City</label>
-                            <input id="adminAirportUpdateCity" />
-                        </div>
-                        <div class="field">
-                            <label for="adminAirportUpdateCountry">New Country</label>
-                            <input id="adminAirportUpdateCountry" />
-                        </div>
-                        </div>
-                        <div class="input-row">
-                        <div class="field">
-                            <label for="adminAirportUpdateLat">New Latitude</label>
-                            <input id="adminAirportUpdateLat" type="number" step="0.000001" />
-                        </div>
-                        <div class="field">
-                            <label for="adminAirportUpdateLon">New Longitude</label>
-                            <input id="adminAirportUpdateLon" type="number" step="0.000001" />
-                        </div>
-                        </div>
-                        <div class="panel-actions">
-                        <button class="btn btn-sm" onclick="adminAirportUpdate()">Update Airport</button>
-                        </div>
-                    </div>
-
-                    <div class="field-group">
-                        <strong style="font-size:12px;">Route – Add</strong>
-                        <div class="input-row">
-                        <div class="field">
-                            <label for="adminRouteAddAirlineId">Airline ID</label>
-                            <input id="adminRouteAddAirlineId" type="number" />
-                        </div>
-                        <div class="field">
-                            <label for="adminRouteAddSrcId">Source Airport ID</label>
-                            <input id="adminRouteAddSrcId" type="number" />
-                        </div>
-                        </div>
-                        <div class="input-row">
-                        <div class="field">
-                            <label for="adminRouteAddDstId">Destination Airport ID</label>
-                            <input id="adminRouteAddDstId" type="number" />
-                        </div>
-                        <div class="field">
-                            <label for="adminRouteAddStops">Stops</label>
-                            <input id="adminRouteAddStops" type="number" min="0" />
-                        </div>
-                        </div>
-                        <div class="panel-actions">
-                        <button class="btn btn-sm" onclick="adminRouteAdd()">Add Route</button>
-                        </div>
-                    </div>
-                    </section>
-                </div>
-
-                <!-- output -->
-                <div class="output-pane">
-                    <div class="output-header">
-                    <div class="output-title" id="outputTitle">Result</div>
-                    <div class="output-subtitle" id="outputSubtitle">
-                        Choose an action from the menu to see results here.
-                    </div>
-                    </div>
-                    <div class="output-body placeholder" id="output">
-                    Select an action and run it to view airlines, airports, or routes.
-                    </div>
-                </div>
-                </div>
+            <div class="tile" onclick="openAction('airport')">
+              <div class="tile-label">Lookup</div>
+              <div class="tile-title">Airport by IATA</div>
+              <div class="tile-desc">See location, city, and coordinates.</div>
+              <div class="tile-tag">Example: /airport?iata=SFO</div>
             </div>
-        </section>
-      </div>
+            <div class="tile" onclick="openAction('one-hop')">
+              <div class="tile-label">Planner</div>
+              <div class="tile-title">One-Hop Route Finder</div>
+              <div class="tile-desc">Find S → X → D routes where each leg has 0 stops.</div>
+              <div class="tile-tag">Shortest 2-leg routes</div>
+            </div>
+            <div class="tile" onclick="openAction('airline-routes')">
+              <div class="tile-label">Report</div>
+              <div class="tile-title">Airline Route Report</div>
+              <div class="tile-desc">List airports served by a given airline.</div>
+              <div class="tile-tag">/airline-routes?iata=AA</div>
+            </div>
+            <div class="tile" onclick="openAction('airport-routes')">
+              <div class="tile-label">Report</div>
+              <div class="tile-title">Airport Route Report</div>
+              <div class="tile-desc">List airlines that serve an airport.</div>
+              <div class="tile-tag">/airport-routes?iata=SFO</div>
+            </div>
+            <div class="tile" onclick="openAction('admin')">
+              <div class="tile-label">Admin</div>
+              <div class="tile-title">In-Memory Data Editor</div>
+              <div class="tile-desc">Add, update, or delete airlines, airports, and routes.</div>
+              <div class="tile-tag">Honors feature · no file write-back</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- WORKSPACE PAGE ------------------------------------------->
+      <section id="page-workspace" class="page">
+        <div class="workspace-header">
+          <div class="workspace-header-left">
+            <div class="page-chip" id="pageChipText">Lookup Airline</div>
+            <div class="page-title">Action Workspace</div>
+            <div class="page-subtitle">
+              Use the tabs to switch actions. Forms are on the left, results on the right.
+            </div>
+          </div>
+          <div class="workspace-header-right">
+            <button class="btn btn-sm btn-ghost" onclick="goBackToMenu()">← Back to Menu</button>
+          </div>
+        </div>
+
+        <div class="breadcrumb">
+          <button onclick="goBackToMenu()">Menu</button>
+          <span>›</span>
+          <span id="breadcrumbLabel">Lookup Airline</span>
+        </div>
+
+        <div class="workspace-tabs">
+          <button class="workspace-tab active" data-panel="airline">Lookup Airline</button>
+          <button class="workspace-tab" data-panel="airport">Lookup Airport</button>
+          <button class="workspace-tab" data-panel="airline-routes">Airline Route Report</button>
+          <button class="workspace-tab" data-panel="airport-routes">Airport Route Report</button>
+          <button class="workspace-tab" data-panel="one-hop">One-Hop Routes</button>
+          <button class="workspace-tab" data-panel="all-airlines">All Airlines</button>
+          <button class="workspace-tab" data-panel="all-airports">All Airports</button>
+          <button class="workspace-tab" data-panel="admin">Admin / Data Editor</button>
+        </div>
+
+        <div class="workspace-main">
+          <!-- FORMS / PANELS --------------------------------------->
+          <div class="forms-pane">
+            <!-- Airline lookup -->
+            <section id="panel-airline" class="panel active">
+              <div class="panel-header">
+                <h3>Lookup Airline</h3>
+                <p>Enter a 2-letter airline IATA code (e.g. AA, DL, UA).</p>
+              </div>
+              <div class="field-group">
+                <div class="field">
+                  <label for="airlineInput">Airline IATA</label>
+                  <input id="airlineInput" class="iata-input" list="airlineList" placeholder="AA, DL, UA…" />
+                </div>
+              </div>
+              <div class="panel-actions">
+                <button class="btn btn-sm btn-primary" onclick="lookupAirline()">Search</button>
+                <button class="btn btn-sm btn-ghost" onclick="clearOutput()">Clear Result</button>
+              </div>
+              <div class="hint-row">
+                Hint: start typing to use autocomplete loaded from
+                <code style="background:var(--code-bg);color:#e5e7eb;padding:1px 4px;border-radius:4px;">/airlines-by-iata</code>.
+              </div>
+            </section>
+
+            <!-- Airport lookup -->
+            <section id="panel-airport" class="panel">
+              <div class="panel-header">
+                <h3>Lookup Airport</h3>
+                <p>Enter a 3-letter airport IATA code (e.g. SFO, LAX, JFK).</p>
+              </div>
+              <div class="field-group">
+                <div class="field">
+                  <label for="airportInput">Airport IATA</label>
+                  <input id="airportInput" class="iata-input" list="airportList" placeholder="SFO, LAX, JFK…" />
+                </div>
+              </div>
+              <div class="panel-actions">
+                <button class="btn btn-sm btn-primary" onclick="lookupAirport()">Search</button>
+                <button class="btn btn-sm btn-ghost" onclick="clearOutput()">Clear Result</button>
+              </div>
+              <div class="hint-row">
+                Try: SFO (San Francisco), LAX (Los Angeles), JFK (New York).
+              </div>
+            </section>
+
+            <!-- Airline route report -->
+            <section id="panel-airline-routes" class="panel">
+              <div class="panel-header">
+                <h3>Airline Route Report</h3>
+                <p>List all airports served by a particular airline.</p>
+              </div>
+              <div class="field-group">
+                <div class="field">
+                  <label for="airlineRouteInput">Airline IATA</label>
+                  <input id="airlineRouteInput" class="iata-input" list="airlineList" placeholder="AA, DL, UA…" />
+                </div>
+              </div>
+              <div class="panel-actions">
+                <button class="btn btn-sm btn-primary" onclick="airlineRoutes()">Run Report</button>
+                <button class="btn btn-sm btn-ghost" onclick="clearOutput()">Clear Result</button>
+              </div>
+            </section>
+
+            <!-- Airport route report -->
+            <section id="panel-airport-routes" class="panel">
+              <div class="panel-header">
+                <h3>Airport Route Report</h3>
+                <p>List all airlines that serve a particular airport.</p>
+              </div>
+              <div class="field-group">
+                <div class="field">
+                  <label for="airportRouteInput">Airport IATA</label>
+                  <input id="airportRouteInput" class="iata-input" list="airportList" placeholder="SFO, LAX, JFK…" />
+                </div>
+              </div>
+              <div class="panel-actions">
+                <button class="btn btn-sm btn-primary" onclick="airportRoutes()">Run Report</button>
+                <button class="btn btn-sm btn-ghost" onclick="clearOutput()">Clear Result</button>
+              </div>
+            </section>
+
+            <!-- One-hop routes -->
+            <section id="panel-one-hop" class="panel">
+              <div class="panel-header">
+                <h3>One-Hop Route Finder</h3>
+                <p>Find all one-hop routes S → X → D, where each leg has 0 stops.</p>
+              </div>
+              <div class="field-group">
+                <div class="input-row">
+                  <div class="field">
+                    <label for="oneHopSrcInput">Source IATA</label>
+                    <input id="oneHopSrcInput" class="iata-input" list="airportList" placeholder="SFO" />
+                  </div>
+                  <div class="field">
+                    <label for="oneHopDstInput">Destination IATA</label>
+                    <input id="oneHopDstInput" class="iata-input" list="airportList" placeholder="JFK" />
+                  </div>
+                </div>
+              </div>
+              <div class="panel-actions">
+                <button class="btn btn-sm btn-primary" onclick="oneHop()">Find Routes</button>
+                <button class="btn btn-sm btn-ghost" onclick="clearOutput()">Clear Result</button>
+                <button class="btn btn-sm btn-ghost" onclick="prefillOneHop('SFO','JFK')">Example: SFO → JFK</button>
+                <button class="btn btn-sm btn-ghost" onclick="prefillOneHop('MIA','BOS')">Example: MIA → BOS</button>
+              </div>
+            </section>
+
+            <!-- All airlines -->
+            <section id="panel-all-airlines" class="panel">
+              <div class="panel-header">
+                <h3>All Airlines</h3>
+                <p>Show all airlines currently loaded, sorted by IATA.</p>
+              </div>
+              <div class="panel-actions">
+                <button class="btn btn-sm btn-primary" onclick="allAirlines()">Load Airlines</button>
+                <button class="btn btn-sm btn-ghost" onclick="clearOutput()">Clear Result</button>
+              </div>
+            </section>
+
+            <!-- All airports -->
+            <section id="panel-all-airports" class="panel">
+              <div class="panel-header">
+                <h3>All Airports</h3>
+                <p>Show all airports currently loaded, sorted by IATA.</p>
+              </div>
+              <div class="panel-actions">
+                <button class="btn btn-sm btn-primary" onclick="allAirports()">Load Airports</button>
+                <button class="btn btn-sm btn-ghost" onclick="clearOutput()">Clear Result</button>
+              </div>
+            </section>
+
+            <!-- Admin panel -->
+            <section id="panel-admin" class="panel">
+              <div class="panel-header">
+                <h3>Admin / Data Editor</h3>
+                <p>Modify airlines, airports, and routes in memory (no file write-back).</p>
+              </div>
+
+              <!-- AIRLINE ADD / UPDATE / DELETE --------------------->
+              <div class="section-title">Airline – Add</div>
+              <div class="field-group">
+                <div class="input-row">
+                  <div class="field">
+                    <label for="adminAirlineAddId">ID</label>
+                    <input id="adminAirlineAddId" type="number" />
+                  </div>
+                  <div class="field">
+                    <label for="adminAirlineAddIata">IATA</label>
+                    <input id="adminAirlineAddIata" class="iata-input" />
+                  </div>
+                </div>
+                <div class="field">
+                  <label for="adminAirlineAddName">Name</label>
+                  <input id="adminAirlineAddName" />
+                </div>
+                <div class="field">
+                  <label for="adminAirlineAddCountry">Country</label>
+                  <input id="adminAirlineAddCountry" />
+                </div>
+                <div class="field">
+                  <label><input type="checkbox" id="adminAirlineAddActive" /> Active</label>
+                </div>
+                <div class="panel-actions">
+                  <button class="btn btn-sm btn-primary" onclick="adminAirlineAdd()">Add Airline</button>
+                </div>
+              </div>
+
+              <div class="section-title">Airline – Update</div>
+              <div class="field-group">
+                <div class="field">
+                  <label for="adminAirlineUpdateId">Existing ID (required)</label>
+                  <input id="adminAirlineUpdateId" type="number" />
+                </div>
+                <div class="input-row">
+                  <div class="field">
+                    <label for="adminAirlineUpdateIata">New IATA (optional)</label>
+                    <input id="adminAirlineUpdateIata" class="iata-input" />
+                  </div>
+                  <div class="field">
+                    <label for="adminAirlineUpdateName">New Name (optional)</label>
+                    <input id="adminAirlineUpdateName" />
+                  </div>
+                </div>
+                <div class="field">
+                  <label for="adminAirlineUpdateCountry">New Country (optional)</label>
+                  <input id="adminAirlineUpdateCountry" />
+                </div>
+                <div class="field">
+                  <label><input type="checkbox" id="adminAirlineUpdateActive" /> Set Active = true</label>
+                </div>
+                <div class="panel-actions">
+                  <button class="btn btn-sm btn-primary" onclick="adminAirlineUpdate()">Update Airline</button>
+                </div>
+              </div>
+
+              <div class="section-title">Airline – Delete</div>
+              <div class="field-group">
+                <div class="field">
+                  <label for="adminAirlineDeleteId">ID to delete (routes using this airline will be removed)</label>
+                  <input id="adminAirlineDeleteId" type="number" />
+                </div>
+                <div class="panel-actions">
+                  <button class="btn btn-sm" style="background:#fee2e2;border-color:#fecaca;color:#b91c1c;"
+                          onclick="adminAirlineDelete()">Delete Airline</button>
+                </div>
+              </div>
+
+              <!-- AIRPORT ADD / UPDATE / DELETE --------------------->
+              <div class="section-title">Airport – Add</div>
+              <div class="field-group">
+                <div class="input-row">
+                  <div class="field">
+                    <label for="adminAirportAddId">ID</label>
+                    <input id="adminAirportAddId" type="number" />
+                  </div>
+                  <div class="field">
+                    <label for="adminAirportAddIata">IATA</label>
+                    <input id="adminAirportAddIata" class="iata-input" />
+                  </div>
+                </div>
+                <div class="field">
+                  <label for="adminAirportAddName">Name</label>
+                  <input id="adminAirportAddName" />
+                </div>
+                <div class="input-row">
+                  <div class="field">
+                    <label for="adminAirportAddCity">City</label>
+                    <input id="adminAirportAddCity" />
+                  </div>
+                  <div class="field">
+                    <label for="adminAirportAddCountry">Country</label>
+                    <input id="adminAirportAddCountry" />
+                  </div>
+                </div>
+                <div class="input-row">
+                  <div class="field">
+                    <label for="adminAirportAddLat">Latitude</label>
+                    <input id="adminAirportAddLat" type="number" step="0.000001" />
+                  </div>
+                  <div class="field">
+                    <label for="adminAirportAddLon">Longitude</label>
+                    <input id="adminAirportAddLon" type="number" step="0.000001" />
+                  </div>
+                </div>
+                <div class="panel-actions">
+                  <button class="btn btn-sm btn-primary" onclick="adminAirportAdd()">Add Airport</button>
+                </div>
+              </div>
+
+              <div class="section-title">Airport – Update</div>
+              <div class="field-group">
+                <div class="field">
+                  <label for="adminAirportUpdateId">Existing ID (required)</label>
+                  <input id="adminAirportUpdateId" type="number" />
+                </div>
+                <div class="input-row">
+                  <div class="field">
+                    <label for="adminAirportUpdateIata">New IATA</label>
+                    <input id="adminAirportUpdateIata" class="iata-input" />
+                  </div>
+                  <div class="field">
+                    <label for="adminAirportUpdateName">New Name</label>
+                    <input id="adminAirportUpdateName" />
+                  </div>
+                </div>
+                <div class="input-row">
+                  <div class="field">
+                    <label for="adminAirportUpdateCity">New City</label>
+                    <input id="adminAirportUpdateCity" />
+                  </div>
+                  <div class="field">
+                    <label for="adminAirportUpdateCountry">New Country</label>
+                    <input id="adminAirportUpdateCountry" />
+                  </div>
+                </div>
+                <div class="input-row">
+                  <div class="field">
+                    <label for="adminAirportUpdateLat">New Latitude</label>
+                    <input id="adminAirportUpdateLat" type="number" step="0.000001" />
+                  </div>
+                  <div class="field">
+                    <label for="adminAirportUpdateLon">New Longitude</label>
+                    <input id="adminAirportUpdateLon" type="number" step="0.000001" />
+                  </div>
+                </div>
+                <div class="panel-actions">
+                  <button class="btn btn-sm btn-primary" onclick="adminAirportUpdate()">Update Airport</button>
+                </div>
+              </div>
+
+              <div class="section-title">Airport – Delete</div>
+              <div class="field-group">
+                <div class="field">
+                  <label for="adminAirportDeleteId">ID to delete (routes using this airport will be removed)</label>
+                  <input id="adminAirportDeleteId" type="number" />
+                </div>
+                <div class="panel-actions">
+                  <button class="btn btn-sm" style="background:#fee2e2;border-color:#fecaca;color:#b91c1c;"
+                          onclick="adminAirportDelete()">Delete Airport</button>
+                </div>
+              </div>
+
+              <!-- ROUTE ADD / DELETE -------------------------------->
+              <div class="section-title">Route – Add</div>
+              <div class="field-group">
+                <div class="input-row">
+                  <div class="field">
+                    <label for="adminRouteAddAirlineId">Airline ID</label>
+                    <input id="adminRouteAddAirlineId" type="number" />
+                  </div>
+                  <div class="field">
+                    <label for="adminRouteAddSrcId">Source Airport ID</label>
+                    <input id="adminRouteAddSrcId" type="number" />
+                  </div>
+                </div>
+                <div class="input-row">
+                  <div class="field">
+                    <label for="adminRouteAddDstId">Destination Airport ID</label>
+                    <input id="adminRouteAddDstId" type="number" />
+                  </div>
+                  <div class="field">
+                    <label for="adminRouteAddStops">Stops</label>
+                    <input id="adminRouteAddStops" type="number" min="0" />
+                  </div>
+                </div>
+                <div class="panel-actions">
+                  <button class="btn btn-sm btn-primary" onclick="adminRouteAdd()">Add Route</button>
+                </div>
+              </div>
+
+              <div class="section-title">Route – Delete</div>
+              <div class="field-group">
+                <div class="input-row">
+                  <div class="field">
+                    <label for="adminRouteDeleteAirlineId">Airline ID</label>
+                    <input id="adminRouteDeleteAirlineId" type="number" />
+                  </div>
+                  <div class="field">
+                    <label for="adminRouteDeleteSrcId">Source Airport ID</label>
+                    <input id="adminRouteDeleteSrcId" type="number" />
+                  </div>
+                  <div class="field">
+                    <label for="adminRouteDeleteDstId">Destination Airport ID</label>
+                    <input id="adminRouteDeleteDstId" type="number" />
+                  </div>
+                </div>
+                <div class="panel-actions">
+                  <button class="btn btn-sm" style="background:#fee2e2;border-color:#fecaca;color:#b91c1c;"
+                          onclick="adminRouteDelete()">Delete Route</button>
+                </div>
+              </div>
+            </section>
+          </div>
+
+          <!-- OUTPUT ------------------------------------------------>
+          <div class="output-pane">
+            <div class="output-header">
+              <div class="output-title" id="outputTitle">Result</div>
+              <div class="output-subtitle" id="outputSubtitle">
+                Choose an action and run it to see data from your C++ backend.
+              </div>
+            </div>
+            <div class="output-body placeholder" id="output">
+              Select an action and run it to view airlines, airports, or routes.
+            </div>
+          </div>
+        </div>
+      </section>
     </div>
   </div>
 </div>
 
-<!-- Toasts & loading -->
+<!-- Loading & Toasts ----------------------------------------------->
 <div id="loadingOverlay">
   <div id="loader" class="loader"></div>
 </div>
 <div id="toastContainer" class="toast-container"></div>
 
-<!-- ID modal -->
+<!-- ID MODAL ------------------------------------------------------>
 <div id="idModal" class="modal" onclick="onModalBackgroundClick(event)">
   <div class="modal-dialog">
     <div class="modal-header">
@@ -1621,93 +1381,13 @@
   </div>
 </div>
 
-<!-- Delete / confirm modal -->
-<div id="confirmModal" class="modal" onclick="onConfirmBackgroundClick(event)">
-  <div class="modal-dialog">
-    <div class="modal-header">
-      <div class="modal-title" id="confirmModalTitle">Confirm action</div>
-      <button class="modal-close" onclick="hideConfirmModal()">×</button>
-    </div>
-    <div id="confirmModalBody" class="modal-body">
-      Are you sure?
-    </div>
-    <div class="panel-actions" style="margin-top:8px; display:flex; justify-content:flex-end; gap:6px;">
-      <button class="btn btn-sm btn-ghost" onclick="hideConfirmModal()">Cancel</button>
-      <button class="btn btn-sm" id="confirmModalConfirmBtn">Yes, continue</button>
-    </div>
-  </div>
-</div>
-
-<!-- Data lists for autocomplete -->
+<!-- Autocomplete lists ------------------------------------------->
 <datalist id="airlineList"></datalist>
 <datalist id="airportList"></datalist>
 
 <script>
-/* ---------- THEME ---------- */
-let currentTheme = 'dark';
+/* ---------- COMMON HELPERS ------------------------------------- */
 
-function applyTheme(theme) {
-  currentTheme = theme;
-  document.documentElement.setAttribute('data-theme', theme);
-  const icon = document.getElementById('themeIcon');
-  icon.style.transform = 'rotate(180deg)';
-  setTimeout(() => {
-    icon.textContent = theme === 'dark' ? '🌙' : '☀️';
-    icon.style.transform = 'rotate(0deg)';
-  }, 120);
-}
-
-function toggleTheme() {
-  applyTheme(currentTheme === 'dark' ? 'light' : 'dark');
-}
-
-/* ---------- PARTICLE BACKGROUND ---------- */
-function initParticles() {
-  const canvas = document.getElementById('bgCanvas');
-  if (!canvas) return;
-  const ctx = canvas.getContext('2d');
-
-  function resize() {
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
-  }
-  resize();
-  window.addEventListener('resize', resize);
-
-  const particles = [];
-  const count = 60;
-  for (let i = 0; i < count; i++) {
-    particles.push({
-      x: Math.random() * canvas.width,
-      y: Math.random() * canvas.height,
-      r: Math.random() * 1.2 + 0.4,
-      dx: (Math.random() - 0.5) * 0.15,
-      dy: (Math.random() - 0.5) * 0.15
-    });
-  }
-
-  function animate() {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    const color = getComputedStyle(document.documentElement)
-      .getPropertyValue('--particle-color').trim() || 'rgba(148,163,184,0.3)';
-    ctx.fillStyle = color;
-    for (const p of particles) {
-      p.x += p.dx;
-      p.y += p.dy;
-      if (p.x < 0) p.x = canvas.width;
-      if (p.x > canvas.width) p.x = 0;
-      if (p.y < 0) p.y = canvas.height;
-      if (p.y > canvas.height) p.y = 0;
-      ctx.beginPath();
-      ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
-      ctx.fill();
-    }
-    requestAnimationFrame(animate);
-  }
-  animate();
-}
-
-/* ---------- TOASTS ---------- */
 function showToast(message, type) {
   const container = document.getElementById('toastContainer');
   const toast = document.createElement('div');
@@ -1736,35 +1416,24 @@ function showToast(message, type) {
   }, 3500);
 }
 
-/* ---------- LOADER ---------- */
 function setLoading(isLoading) {
   const loader = document.getElementById('loader');
   const overlay = document.getElementById('loadingOverlay');
   if (!loader || !overlay) return;
   if (isLoading) {
-    loader.classList.add('show');
     overlay.classList.add('show');
   } else {
-    loader.classList.remove('show');
     overlay.classList.remove('show');
   }
 }
 
-/* ---------- MAP STUBS (no map in this version) ---------- */
-function hideMap() {}
-function showMapForAirport(data) {}
-function showMapForOneHop(a, b, c) {}
-function fetchAirportsForOneHop(src, dst, via) {}
-
-/* ---------- OUTPUT ---------- */
 function clearOutput() {
   document.getElementById('outputTitle').innerText = 'Result';
   document.getElementById('outputSubtitle').innerText =
-    'Choose an action from the menu to see results here.';
+    'Choose an action and run it to see data from your C++ backend.';
   const out = document.getElementById('output');
   out.classList.add('placeholder');
   out.textContent = 'Select an action and run it to view airlines, airports, or routes.';
-  hideMap();
 }
 
 function setOutput(html, title, subtitle) {
@@ -1784,11 +1453,11 @@ function setError(err) {
   out.classList.remove('placeholder');
   out.textContent = msg;
   setLoading(false);
-  hideMap();
   showToast(msg, 'error');
 }
 
-/* ---------- API HELPERS ---------- */
+/* ---------- API HELPERS ---------------------------------------- */
+
 function api(path) {
   return fetch(path).then(res => {
     if (!res.ok) {
@@ -1811,7 +1480,8 @@ function apiPost(path, payload) {
   });
 }
 
-/* ---------- ID MODAL ---------- */
+/* ---------- ID MODAL ------------------------------------------- */
+
 function showIdModal() {
   document.getElementById('idModal').classList.add('show');
 }
@@ -1821,29 +1491,30 @@ function hideIdModal() {
 function onModalBackgroundClick(event) {
   if (event.target.id === 'idModal') hideIdModal();
 }
+
 function renderIdInModal(data) {
   const name = data.name || '';
   const id = data.deanza_id || data.id || '';
   const chip = document.getElementById('headerIdText');
   chip.textContent = name && id ? `${name} (${id})` : '';
+
   const html = `
-    <div class="modal-body">
-      <div class="info-grid">
-        <div class="info-item">
-          <div class="info-label">Name</div>
-          <div class="info-value">${name}</div>
-        </div>
-        <div class="info-item">
-          <div class="info-label">De Anza ID</div>
-          <div class="info-value">${id}</div>
-        </div>
+    <div class="info-grid">
+      <div class="info-item">
+        <div class="info-label">Name</div>
+        <div class="info-value">${name}</div>
       </div>
-      <p style="font-size:11px;color:var(--muted);margin-top:6px;">
-        This ID is returned from the C++ backend via the <code>/id</code> endpoint.
-      </p>
-    </div>`;
+      <div class="info-item">
+        <div class="info-label">De Anza ID</div>
+        <div class="info-value">${id}</div>
+      </div>
+    </div>
+    <p style="font-size:11px;color:var(--muted);margin-top:6px;">
+      This ID is returned from the C++ backend via the <code>/id</code> endpoint.
+    </p>`;
   document.getElementById('idModalBody').innerHTML = html;
 }
+
 function loadId() {
   document.getElementById('idModalBody').textContent = 'Loading…';
   showIdModal();
@@ -1855,37 +1526,13 @@ function loadId() {
     });
 }
 
-/* ---------- GENERIC CONFIRM MODAL ---------- */
-let confirmCallback = null;
+/* ---------- TABLE SORTING -------------------------------------- */
 
-function showConfirm(message, onConfirm, title) {
-  confirmCallback = typeof onConfirm === 'function' ? onConfirm : null;
-  const bodyEl = document.getElementById('confirmModalBody');
-  const titleEl = document.getElementById('confirmModalTitle');
-  if (bodyEl) bodyEl.textContent = message || 'Are you sure?';
-  if (titleEl && title) titleEl.textContent = title;
-  document.getElementById('confirmModal').classList.add('show');
-}
-
-function hideConfirmModal() {
-  document.getElementById('confirmModal').classList.remove('show');
-  confirmCallback = null;
-}
-
-function onConfirmBackgroundClick(event) {
-  if (event.target.id === 'confirmModal') {
-    hideConfirmModal();
-  }
-}
-
-
-/* ---------- TABLE SORTING ---------- */
 function enableTableSorting() {
   document.querySelectorAll('#output table.sortable').forEach(table => {
     const thead = table.tHead;
     if (!thead) return;
     Array.from(thead.rows[0].cells).forEach((th, index) => {
-      th.classList.add('sortable');
       th.onclick = () => {
         const dir = th.dataset.sortDir === 'asc' ? 'desc' : 'asc';
         th.dataset.sortDir = dir;
@@ -1913,7 +1560,8 @@ function sortTableByColumn(table, columnIndex, asc = true) {
   rows.forEach(r => tbody.appendChild(r));
 }
 
-/* ---------- RENDER HELPERS ---------- */
+/* ---------- RENDER HELPERS ------------------------------------- */
+
 function renderTable(headers, rows) {
   let thead = '<tr>';
   headers.forEach(h => thead += `<th>${h}</th>`);
@@ -1924,13 +1572,11 @@ function renderTable(headers, rows) {
     r.forEach(cell => { tbody += `<td>${cell}</td>`; });
     tbody += '</tr>';
   });
-  return `<div style="max-height:340px;overflow:auto;"><table class="sortable">${thead}${tbody}</table></div>`;
+  return `<div style="max-height:360px;overflow:auto;"><table class="sortable">${thead}${tbody}</table></div>`;
 }
 
 function renderAirline(data, code) {
-  hideMap();
   const active = !!data.active;
-  const activeLabel = active ? 'Active airline' : 'Inactive / historical';
   const statusBadge = `<span class="status-badge ${active ? 'status-active' : 'status-inactive'}">${active ? 'Active' : 'Inactive'}</span>`;
 
   const infoHtml = `
@@ -1948,7 +1594,7 @@ function renderAirline(data, code) {
         <div class="info-value">${data.country || ''}</div>
       </div>
       <div class="info-item">
-        <div class="info-label">Active</div>
+        <div class="info-label">Active flag</div>
         <div class="info-value">${String(data.active)}</div>
       </div>
       <div class="info-item">
@@ -1966,15 +1612,13 @@ function renderAirline(data, code) {
   if (data.country) pieces.push(`based in <strong>${data.country}</strong>`);
   if (data.iata || code) pieces.push(`using IATA code <strong>${data.iata || code}</strong>`);
   const summaryLine = pieces.length
-    ? pieces.join(' ') + `. ${activeLabel}.`
+    ? pieces.join(' ') + (active ? '. This airline is currently active.' : '. This airline is marked inactive.')
     : 'Basic information about this airline loaded from the backend.';
 
   const summaryHtml = `
     <div class="summary-card">
       <div class="summary-title">Quick summary</div>
-      <div class="summary-body">
-        <div>${summaryLine}</div>
-      </div>
+      <div class="summary-body">${summaryLine}</div>
     </div>`;
 
   setOutput(infoHtml + summaryHtml,
@@ -1982,7 +1626,6 @@ function renderAirline(data, code) {
     'Basic airline details from the C++ backend.');
   showToast(`Loaded airline ${data.iata || code}`, 'success');
 }
-
 
 function renderAirport(data, code) {
   const infoHtml = `
@@ -2013,31 +1656,26 @@ function renderAirport(data, code) {
       </div>
     </div>`;
 
+  const name = data.name || 'This airport';
   const city = data.city || '';
   const country = data.country || '';
-  const name = data.name || 'This airport';
   const summaryLine = city || country
-    ? `🛬 <strong>${name}</strong> primarily serves <strong>${city || ''}${city && country ? ', ' : ''}${country || ''}</strong>.`
+    ? `🛬 <strong>${name}</strong> primarily serves <strong>${city}${city && country ? ', ' : ''}${country}</strong>.`
     : '🛬 Airport metadata and coordinates loaded from the backend.';
 
   const summaryHtml = `
     <div class="summary-card">
       <div class="summary-title">Quick summary</div>
-      <div class="summary-body">
-        <div>${summaryLine}</div>
-      </div>
+      <div class="summary-body">${summaryLine}</div>
     </div>`;
 
   setOutput(infoHtml + summaryHtml,
     `Airport: ${data.iata || code}`,
     'Airport location and metadata.');
-  showMapForAirport(data);
   showToast(`Loaded airport ${data.iata || code}`, 'success');
 }
 
-
 function renderAirlineRoutes(data, code) {
-  hideMap();
   const airline = data.airline || {};
   const list = data.airports || [];
 
@@ -2049,7 +1687,6 @@ function renderAirlineRoutes(data, code) {
     a.route_count
   ]);
 
-  // pick "best" airport = most routes
   let best = null;
   list.forEach(a => {
     if (!best || (a.route_count || 0) > (best.route_count || 0)) {
@@ -2090,9 +1727,7 @@ function renderAirlineRoutes(data, code) {
   showToast(`Loaded airline route report for ${airline.iata || code}`, 'success');
 }
 
-
 function renderAirportRoutes(data, code) {
-  hideMap();
   const airport = data.airport || {};
   const list = data.airlines || [];
 
@@ -2103,7 +1738,6 @@ function renderAirportRoutes(data, code) {
     a.route_count
   ]);
 
-  // pick "best" airline = most routes
   let best = null;
   list.forEach(a => {
     if (!best || (a.route_count || 0) > (best.route_count || 0)) {
@@ -2147,29 +1781,18 @@ function renderAirportRoutes(data, code) {
   showToast(`Loaded airport route report for ${airport.iata || code}`, 'success');
 }
 
-
 function renderAirlinesList(data) {
-  hideMap();
   const list = data.airlines || [];
   const rows = list.map(a => {
     const badge = `<span class="status-badge ${a.active ? 'status-active' : 'status-inactive'}">${a.active ? 'Active' : 'Inactive'}</span>`;
-    return [
-      a.iata || '',
-      a.name || '',
-      a.country || '',
-      badge
-    ];
+    return [a.iata || '', a.name || '', a.country || '', badge];
   });
-  const table = renderTable(
-    ['IATA', 'Name', 'Country', 'Status'],
-    rows
-  );
+  const table = renderTable(['IATA', 'Name', 'Country', 'Status'], rows);
   setOutput(table, 'All Airlines (sorted by IATA)', 'Snapshot of all airlines currently loaded in memory.');
   showToast(`Loaded ${list.length} airlines.`, 'success');
 }
 
 function renderAirportsList(data) {
-  hideMap();
   const list = data.airports || [];
   const rows = list.map(a => [
     a.iata || '',
@@ -2177,10 +1800,7 @@ function renderAirportsList(data) {
     a.city || '',
     a.country || ''
   ]);
-  const table = renderTable(
-    ['IATA', 'Name', 'City', 'Country'],
-    rows
-  );
+  const table = renderTable(['IATA', 'Name', 'City', 'Country'], rows);
   setOutput(table, 'All Airports (sorted by IATA)', 'Snapshot of all airports currently loaded in memory.');
   showToast(`Loaded ${list.length} airports.`, 'success');
 }
@@ -2188,7 +1808,6 @@ function renderAirportsList(data) {
 function renderOneHop(data, src, dst) {
   const routes = data.routes || [];
   if (!routes.length) {
-    hideMap();
     setOutput(
       `<p>No one-hop routes found from <strong>${src}</strong> to <strong>${dst}</strong> with 0 stops on each leg.</p>`,
       `One-Hop Routes: ${src} → ${dst}`,
@@ -2211,7 +1830,6 @@ function renderOneHop(data, src, dst) {
     rows
   );
 
-  // Trip-style summary with airlines + best route
   const viaSet = new Set();
   const airlineSet = new Set();
   let best = null;
@@ -2230,7 +1848,6 @@ function renderOneHop(data, src, dst) {
     }
   });
 
-  const airlinesList = Array.from(airlineSet).sort().join(', ');
   const bestVia = best ? ((best.via && best.via.iata) || best.via_iata || '') : '';
   const bestMiles = best && best.total_miles ? best.total_miles.toFixed(1) : '';
 
@@ -2257,38 +1874,31 @@ function renderOneHop(data, src, dst) {
 
   const summaryHtml = `
     <div class="summary-card">
-        <div class="summary-title">Trip Summary</div>
-        <div class="summary-body">
+      <div class="summary-title">Trip summary</div>
+      <div class="summary-body">
+        <div><strong>${routes.length}</strong> one-hop routes from <strong>${src}</strong> to <strong>${dst}</strong>.</div>
+        <div>Uses <strong>${viaSet.size}</strong> different via airports and <strong>${airlineSet.size}</strong> airlines.</div>
+        ${
+          best
+            ? `<div>Shortest option: via <strong>${bestVia}</strong> — about <strong>${bestMiles}</strong> miles total${
+                bestAirlineStr ? ` (airline(s): ${bestAirlineStr})` : ''
+              }.</div>`
+            : ''
+        }
+      </div>
+    </div>`;
 
-        <div>✈️ <strong>${routes.length}</strong> routes found from 
-            <strong>${src}</strong> to <strong>${dst}</strong>.
-        </div>
-
-        <div>🛫 <strong>${viaSet.size}</strong> different connecting airports.</div>
-
-        <div>🏢 <strong>${airlineSet.size}</strong> airlines operate these connections.</div>
-
-        ${best ? `
-            <div style="margin-top:6px;">
-            ⭐ <strong>Shortest route:</strong><br>
-            • <strong>${src}</strong> → <strong>${bestVia}</strong> → <strong>${dst}</strong><br>
-            • Airlines: <strong>${bestAirlineStr || 'unknown'}</strong><br>
-            • Distance: <strong>${bestMiles} miles</strong>
-            </div>
-        ` : ''}
-        </div>
-    </div>
-  `;
-
-  setOutput(header + summaryHtml + table,
+  setOutput(
+    header + summaryHtml + table,
     `One-Hop Routes: ${src} → ${dst}`,
-    'Sorted by total air miles (ascending).');
+    'Routes are sorted by total air miles (shortest first).'
+  );
   showToast(`Found ${routes.length} one-hop routes for ${src} → ${dst}`, 'success');
 }
 
 
+/* ---------- ACTION CALLS --------------------------------------- */
 
-/* ---------- ACTION CALLS ---------- */
 function lookupAirline() {
   const code = document.getElementById('airlineInput').value.trim();
   if (!code) {
@@ -2371,7 +1981,8 @@ function allAirports() {
     .finally(() => setLoading(false));
 }
 
-/* ---------- ADMIN CALLS ---------- */
+/* ---------- ADMIN CALLS ---------------------------------------- */
+
 function adminAirlineAdd() {
   const id = parseInt(document.getElementById('adminAirlineAddId').value, 10);
   const iata = document.getElementById('adminAirlineAddIata').value.trim();
@@ -2383,25 +1994,18 @@ function adminAirlineAdd() {
     return;
   }
   setLoading(true);
-  apiPost('/airline-add', {
-    id: id,
-    iata: iata,
-    name: name,
-    country: country,
-    active: active
-  })
-  .then(resp => {
-    showToast(resp.message || 'Airline added.', 'success');
-    setOutput(
-      `<p>Airline added: <strong>${resp.airline.iata}</strong> — ${resp.airline.name}</p>`,
-      'Admin: Airline Add',
-      ''
-    );
-    hideMap();
-    preloadIataLists();
-  })
-  .catch(setError)
-  .finally(() => setLoading(false));
+  apiPost('/airline-add', { id, iata, name, country, active })
+    .then(resp => {
+      showToast(resp.message || 'Airline added.', 'success');
+      setOutput(
+        `<p>Airline added: <strong>${resp.airline.iata}</strong> — ${resp.airline.name}</p>`,
+        'Admin: Airline Add',
+        ''
+      );
+      preloadIataLists();
+    })
+    .catch(setError)
+    .finally(() => setLoading(false));
 }
 
 function adminAirlineUpdate() {
@@ -2415,7 +2019,7 @@ function adminAirlineUpdate() {
   const country = document.getElementById('adminAirlineUpdateCountry').value.trim();
   const activeChecked = document.getElementById('adminAirlineUpdateActive').checked;
 
-  const payload = { id: id };
+  const payload = { id };
   if (iata) payload.iata = iata;
   if (name) payload.name = name;
   if (country) payload.country = country;
@@ -2430,7 +2034,6 @@ function adminAirlineUpdate() {
         'Admin: Airline Update',
         ''
       );
-      hideMap();
       preloadIataLists();
     })
     .catch(setError)
@@ -2443,33 +2046,19 @@ function adminAirlineDelete() {
     setError(new Error('Airline Delete: id is required.'));
     return;
   }
-
-  showConfirm(
-    'Delete this airline and all routes that use it?',
-    () => {
-      setLoading(true);
-      apiPost('/airline-delete', { id: id })
-        .then(resp => {
-          const a = resp.airline || {};
-          const removed = resp.removed_routes || 0;
-          showToast(
-            resp.message || `Airline ${a.iata || ''} deleted. Removed ${removed} routes.`,
-            'success'
-          );
-          setOutput(
-            `<p>Deleted airline <strong>${a.iata || ''}</strong> — ${a.name || ''}.<br>` +
-            `Removed <strong>${removed}</strong> routes that used this airline.</p>`,
-            'Admin: Airline Delete',
-            ''
-          );
-          hideMap();
-          preloadIataLists();
-        })
-        .catch(setError)
-        .finally(() => setLoading(false));
-    },
-    'Delete airline'
-  );
+  setLoading(true);
+  apiPost('/airline-delete', { id })
+    .then(resp => {
+      showToast(resp.message || 'Airline deleted.', 'success');
+      setOutput(
+        `<p>${resp.message || 'Airline deleted.'}</p>`,
+        'Admin: Airline Delete',
+        ''
+      );
+      preloadIataLists();
+    })
+    .catch(setError)
+    .finally(() => setLoading(false));
 }
 
 function adminAirportAdd() {
@@ -2480,34 +2069,26 @@ function adminAirportAdd() {
   const country = document.getElementById('adminAirportAddCountry').value.trim();
   const latVal = document.getElementById('adminAirportAddLat').value;
   const lonVal = document.getElementById('adminAirportAddLon').value;
-  const lat = latVal ? parseFloat(latVal) : 0.0;
-  const lon = lonVal ? parseFloat(lonVal) : 0.0;
+  const latitude = latVal ? parseFloat(latVal) : 0.0;
+  const longitude = lonVal ? parseFloat(lonVal) : 0.0;
+
   if (!id || !iata || !name) {
     setError(new Error('Airport Add: id, iata, and name are required.'));
     return;
   }
   setLoading(true);
-  apiPost('/airport-add', {
-    id: id,
-    iata: iata,
-    name: name,
-    city: city,
-    country: country,
-    latitude: lat,
-    longitude: lon
-  })
-  .then(resp => {
-    showToast(resp.message || 'Airport added.', 'success');
-    setOutput(
-      `<p>Airport added: <strong>${resp.airport.iata}</strong> — ${resp.airport.name}</p>`,
-      'Admin: Airport Add',
-      ''
-    );
-    hideMap();
-    preloadIataLists();
-  })
-  .catch(setError)
-  .finally(() => setLoading(false));
+  apiPost('/airport-add', { id, iata, name, city, country, latitude, longitude })
+    .then(resp => {
+      showToast(resp.message || 'Airport added.', 'success');
+      setOutput(
+        `<p>Airport added: <strong>${resp.airport.iata}</strong> — ${resp.airport.name}</p>`,
+        'Admin: Airport Add',
+        ''
+      );
+      preloadIataLists();
+    })
+    .catch(setError)
+    .finally(() => setLoading(false));
 }
 
 function adminAirportUpdate() {
@@ -2523,7 +2104,7 @@ function adminAirportUpdate() {
   const latVal = document.getElementById('adminAirportUpdateLat').value;
   const lonVal = document.getElementById('adminAirportUpdateLon').value;
 
-  const payload = { id: id };
+  const payload = { id };
   if (iata) payload.iata = iata;
   if (name) payload.name = name;
   if (city) payload.city = city;
@@ -2540,7 +2121,6 @@ function adminAirportUpdate() {
         'Admin: Airport Update',
         ''
       );
-      hideMap();
       preloadIataLists();
     })
     .catch(setError)
@@ -2553,33 +2133,19 @@ function adminAirportDelete() {
     setError(new Error('Airport Delete: id is required.'));
     return;
   }
-
-  showConfirm(
-    'Delete this airport and all routes that depart from or arrive at it?',
-    () => {
-      setLoading(true);
-      apiPost('/airport-delete', { id: id })
-        .then(resp => {
-          const a = resp.airport || {};
-          const removed = resp.removed_routes || 0;
-          showToast(
-            resp.message || `Airport ${a.iata || ''} deleted. Removed ${removed} routes.`,
-            'success'
-          );
-          setOutput(
-            `<p>Deleted airport <strong>${a.iata || ''}</strong> — ${a.name || ''}.<br>` +
-            `Removed <strong>${removed}</strong> routes involving this airport.</p>`,
-            'Admin: Airport Delete',
-            ''
-          );
-          hideMap();
-          preloadIataLists();
-        })
-        .catch(setError)
-        .finally(() => setLoading(false));
-    },
-    'Delete airport'
-  );
+  setLoading(true);
+  apiPost('/airport-delete', { id })
+    .then(resp => {
+      showToast(resp.message || 'Airport deleted.', 'success');
+      setOutput(
+        `<p>${resp.message || 'Airport deleted.'}</p>`,
+        'Admin: Airport Delete',
+        ''
+      );
+      preloadIataLists();
+    })
+    .catch(setError)
+    .finally(() => setLoading(false));
 }
 
 function adminRouteAdd() {
@@ -2588,6 +2154,7 @@ function adminRouteAdd() {
   const dstId = parseInt(document.getElementById('adminRouteAddDstId').value, 10);
   const stopsVal = document.getElementById('adminRouteAddStops').value;
   const stops = stopsVal === '' ? 0 : parseInt(stopsVal, 10);
+
   if (!airlineId || !srcId || !dstId) {
     setError(new Error('Route Add: airline_id, src_id, and dst_id are required.'));
     return;
@@ -2599,58 +2166,13 @@ function adminRouteAdd() {
     dst_id: dstId,
     stops: stops
   })
-  .then(resp => {
-    showToast(resp.message || 'Route added.', 'success');
-    setOutput(
-      `<p>Route added: airline_id=${resp.route.airline_id}, src_id=${resp.route.src_id}, dst_id=${resp.route.dst_id}, stops=${resp.route.stops}</p>`,
-      'Admin: Route Add',
-      ''
-    );
-    hideMap();
-  })
-  .catch(setError)
-  .finally(() => setLoading(false));
-}
-
-function adminRouteUpdate() {
-  const oldAirline = parseInt(document.getElementById('adminRouteUpdateOldAirlineId').value, 10);
-  const oldSrc     = parseInt(document.getElementById('adminRouteUpdateOldSrcId').value, 10);
-  const oldDst     = parseInt(document.getElementById('adminRouteUpdateOldDstId').value, 10);
-
-  if (!oldAirline || !oldSrc || !oldDst) {
-    setError(new Error('Route Update: old airline_id, old src_id, and old dst_id are required.'));
-    return;
-  }
-
-  const newAirlineVal = document.getElementById('adminRouteUpdateNewAirlineId').value;
-  const newSrcVal     = document.getElementById('adminRouteUpdateNewSrcId').value;
-  const newDstVal     = document.getElementById('adminRouteUpdateNewDstId').value;
-  const newStopsVal   = document.getElementById('adminRouteUpdateNewStops').value;
-
-  const payload = {
-    old_airline_id: oldAirline,
-    old_src_id: oldSrc,
-    old_dst_id: oldDst
-  };
-
-  if (newAirlineVal) payload.new_airline_id = parseInt(newAirlineVal, 10);
-  if (newSrcVal)     payload.new_src_id     = parseInt(newSrcVal, 10);
-  if (newDstVal)     payload.new_dst_id     = parseInt(newDstVal, 10);
-  if (newStopsVal !== '') payload.new_stops = parseInt(newStopsVal, 10);
-
-  setLoading(true);
-  apiPost('/route-update', payload)
     .then(resp => {
-      const r = resp.route || {};
-      showToast(resp.message || 'Route updated.', 'success');
+      showToast(resp.message || 'Route added.', 'success');
       setOutput(
-        `<p>Updated route: airline_id=<strong>${r.airline_id}</strong>, ` +
-        `src_id=<strong>${r.src_id}</strong>, dst_id=<strong>${r.dst_id}</strong>, ` +
-        `stops=<strong>${r.stops}</strong>.</p>`,
-        'Admin: Route Update',
+        `<p>Route added: airline_id=${resp.route.airline_id}, src_id=${resp.route.src_id}, dst_id=${resp.route.dst_id}, stops=${resp.route.stops}</p>`,
+        'Admin: Route Add',
         ''
       );
-      hideMap();
     })
     .catch(setError)
     .finally(() => setLoading(false));
@@ -2658,45 +2180,33 @@ function adminRouteUpdate() {
 
 function adminRouteDelete() {
   const airlineId = parseInt(document.getElementById('adminRouteDeleteAirlineId').value, 10);
-  const srcId     = parseInt(document.getElementById('adminRouteDeleteSrcId').value, 10);
-  const dstId     = parseInt(document.getElementById('adminRouteDeleteDstId').value, 10);
-  const stopsVal  = document.getElementById('adminRouteDeleteStops').value;
+  const srcId = parseInt(document.getElementById('adminRouteDeleteSrcId').value, 10);
+  const dstId = parseInt(document.getElementById('adminRouteDeleteDstId').value, 10);
 
   if (!airlineId || !srcId || !dstId) {
     setError(new Error('Route Delete: airline_id, src_id, and dst_id are required.'));
     return;
   }
-
-  const payload = {
+  setLoading(true);
+  apiPost('/route-delete', {
     airline_id: airlineId,
     src_id: srcId,
     dst_id: dstId
-  };
-  if (stopsVal !== '') payload.stops = parseInt(stopsVal, 10);
-
-  showConfirm(
-    'Delete all routes matching this airline + source + destination (and stops, if given)?',
-    () => {
-      setLoading(true);
-      apiPost('/route-delete', payload)
-        .then(resp => {
-          const removed = resp.removed_routes || 0;
-          showToast(resp.message || `Deleted ${removed} route(s).`, 'success');
-          setOutput(
-            `<p>Deleted <strong>${removed}</strong> route(s) matching the given filter.</p>`,
-            'Admin: Route Delete',
-            ''
-          );
-          hideMap();
-        })
-        .catch(setError)
-        .finally(() => setLoading(false));
-    },
-    'Delete route(s)'
-  );
+  })
+    .then(resp => {
+      showToast(resp.message || 'Route deleted.', 'success');
+      setOutput(
+        `<p>${resp.message || 'Route deleted.'}</p>`,
+        'Admin: Route Delete',
+        ''
+      );
+    })
+    .catch(setError)
+    .finally(() => setLoading(false));
 }
 
-/* ---------- MENU / PAGES ---------- */
+/* ---------- NAV / PAGES ---------------------------------------- */
+
 const pageChipLabels = {
   'airline': 'Lookup Airline',
   'airport': 'Lookup Airport',
@@ -2708,60 +2218,50 @@ const pageChipLabels = {
   'admin': 'Admin / Data Editor'
 };
 
-function openAction(panelName) {
-  // Switch to workspace page
-  document.getElementById('page-menu').classList.remove('active');
-  document.getElementById('page-workspace').classList.add('active');
+function setActivePanel(panelName) {
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  const panel = document.getElementById('panel-' + panelName);
+  if (panel) panel.classList.add('active');
 
-  // Click the matching top tab so all the logic stays in one place
-  const btn = document.querySelector(`.nav-btn[data-panel="${panelName}"]`);
-  if (btn) {
-    btn.click();
+  document.querySelectorAll('.workspace-tab').forEach(tab => {
+    tab.classList.toggle('active', tab.dataset.panel === panelName);
+  });
+
+  const chip = document.getElementById('pageChipText');
+  if (chip && pageChipLabels[panelName]) {
+    chip.textContent = pageChipLabels[panelName];
+  }
+  const crumb = document.getElementById('breadcrumbLabel');
+  if (crumb && pageChipLabels[panelName]) {
+    crumb.textContent = pageChipLabels[panelName];
   }
 }
 
+function openAction(panelName) {
+  document.getElementById('page-menu').classList.remove('active');
+  document.getElementById('page-workspace').classList.add('active');
+  setActivePanel(panelName);
+  clearOutput();
+}
 
 function goBackToMenu() {
   document.getElementById('page-workspace').classList.remove('active');
   document.getElementById('page-menu').classList.add('active');
-
-  // Show the sidebar again
-  document.querySelector('.sidebar').classList.remove('hidden');
-
   clearOutput();
 }
 
-
-function attachSideMenu() {
-  document.querySelectorAll('.nav-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const panelName = btn.getAttribute('data-panel');
-
-      // highlight active tab
-      document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-
-      // show correct panel
-      document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
-      const panel = document.getElementById('panel-' + panelName);
-      if (panel) panel.classList.add('active');
-
-      // update chip + breadcrumb text
-      const chip = document.getElementById('pageChipText');
-      const crumb = document.getElementById('breadcrumbCurrent');
-      if (pageChipLabels[panelName]) {
-        if (chip) chip.textContent = pageChipLabels[panelName];
-        if (crumb) crumb.textContent = pageChipLabels[panelName];
-      }
-
+function attachTabs() {
+  document.querySelectorAll('.workspace-tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      const panelName = tab.dataset.panel;
+      setActivePanel(panelName);
       clearOutput();
     });
   });
 }
 
+/* ---------- AUTOCOMPLETE LISTS -------------------------------- */
 
-
-/* ---------- AUTOCOMPLETE LISTS ---------- */
 function preloadIataLists() {
   api('/airlines-by-iata')
     .then(data => {
@@ -2794,47 +2294,17 @@ function preloadIataLists() {
     .catch(() => {});
 }
 
-/* ---------- RIPPLE EFFECT ---------- */
-function attachRipples() {
-  function addRipple(e) {
-    const btn = e.currentTarget;
-    const rect = btn.getBoundingClientRect();
-    const ripple = document.createElement('span');
-    const size = Math.max(rect.width, rect.height);
-    ripple.className = 'ripple';
-    ripple.style.width = ripple.style.height = size + 'px';
-    const x = e.clientX - rect.left - size / 2;
-    const y = e.clientY - rect.top - size / 2;
-    ripple.style.left = x + 'px';
-    ripple.style.top = y + 'px';
-    btn.appendChild(ripple);
-    setTimeout(() => ripple.remove(), 450);
-  }
-  document.querySelectorAll('.btn, .icon-btn').forEach(btn => {
-    btn.addEventListener('click', addRipple);
-  });
-}
+/* ---------- MISC ----------------------------------------------- */
 
-/* ---------- HELPERS ---------- */
 function prefillOneHop(src, dst) {
   document.getElementById('oneHopSrcInput').value = src;
   document.getElementById('oneHopDstInput').value = dst;
 }
 
-function gotoSection(which) {
-  if (which === 'onehop') {
-    openAction('one-hop');
-  } else {
-    openAction('airline');  // default
-  }
-}
+/* ---------- INIT ----------------------------------------------- */
 
-/* ---------- INIT ---------- */
 document.addEventListener('DOMContentLoaded', () => {
-  applyTheme('dark');
-  initParticles();
-  attachRipples();
-  attachSideMenu();
+  attachTabs();
   preloadIataLists();
   clearOutput();
 
@@ -2843,16 +2313,6 @@ document.addEventListener('DOMContentLoaded', () => {
       inp.value = inp.value.toUpperCase();
     });
   });
-
-  // hook confirm modal button
-  const confirmBtn = document.getElementById('confirmModalConfirmBtn');
-  if (confirmBtn) {
-    confirmBtn.addEventListener('click', () => {
-      const cb = confirmCallback;
-      hideConfirmModal();
-      if (cb) cb();
-    });
-  }
 });
 </script>
 </body>

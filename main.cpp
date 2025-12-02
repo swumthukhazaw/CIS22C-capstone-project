@@ -328,6 +328,21 @@ void rebuildRoutesAdjacency()
     }
 }
 
+// Escape <, >, & so we can safely show code inside HTML
+std::string htmlEscape(const std::string& s) {
+    std::string out;
+    out.reserve(s.size() * 1.1);
+    for (char c : s) {
+        switch (c) {
+            case '&': out += "&amp;"; break;
+            case '<': out += "&lt;";  break;
+            case '>': out += "&gt;";  break;
+            default:  out += c;       break;
+        }
+    }
+    return out;
+}
+
 
 // ----------------- Crow handlers -----------------
 
@@ -830,73 +845,6 @@ int main(int argc, char* argv[])
         int id = body["id"].i();
         std::string iataRaw = body["iata"].s();
         std::string name = body["name"].s();
-        std::string city;
-        if (body.has("city")) {
-            city = std::string(body["city"].s());
-        } else {
-            city = "";
-        }
-
-        std::string country;
-        if (body.has("country")) {
-            country = std::string(body["country"].s());
-        } else {
-            country = "";
-        }
-
-        double lat = body.has("latitude") ? body["latitude"].d() : 0.0;
-        double lon = body.has("longitude") ? body["longitude"].d() : 0.0;
-
-        if (airportIdToIndex.find(id) != airportIdToIndex.end()) {
-            return crow::response(400, "Airport with that ID already exists");
-        }
-
-        Airport a;
-        a.id = id;
-        a.iata = toUpper(trim(iataRaw));
-        a.name = trim(name);
-        a.city = trim(city);
-        a.country = trim(country);
-        a.latitude = lat;
-        a.longitude = lon;
-
-        std::size_t index = airports.size();
-        airports.push_back(a);
-
-        airportIdToIndex[a.id] = index;
-        if (!a.iata.empty() && a.iata != "\\N") {
-            airportIataToIndex[a.iata] = index;
-        }
-
-        crow::json::wvalue resp;
-        resp["status"] = "ok";
-        resp["message"] = "Airport added in memory";
-        resp["airport"]["id"] = a.id;
-        resp["airport"]["iata"] = a.iata;
-        resp["airport"]["name"] = a.name;
-        resp["airport"]["city"] = a.city;
-        resp["airport"]["country"] = a.country;
-        resp["airport"]["latitude"] = a.latitude;
-        resp["airport"]["longitude"] = a.longitude;
-
-        return crow::response{resp};
-    });
-
-    // Add a new airport
-    CROW_ROUTE(app, "/airport-add").methods(crow::HTTPMethod::Post)
-    ([](const crow::request& req){
-        auto body = crow::json::load(req.body);
-        if (!body) {
-            return crow::response(400, "Invalid JSON");
-        }
-
-        if (!body.has("id") || !body.has("iata") || !body.has("name")) {
-            return crow::response(400, "Missing required fields: id, iata, name");
-        }
-
-        int id = body["id"].i();
-        std::string iataRaw = body["iata"].s();
-        std::string name = body["name"].s();
         std::string city = body.has("city") ? std::string(body["city"].s()) : "";
         std::string country = body.has("country") ? std::string(body["country"].s()) : "";
         double lat = body.has("latitude") ? body["latitude"].d() : 0.0;
@@ -1366,6 +1314,62 @@ int main(int argc, char* argv[])
         }
 
         return crow::response{j};
+    });
+
+    CROW_ROUTE(app, "/code")
+    ([]{
+        std::ifstream cppFile("main.cpp");
+        std::ifstream htmlFile("static/index.html");
+
+        if (!cppFile || !htmlFile) {
+            return crow::response(500, "Unable to open main.cpp or static/index.html\n");
+        }
+
+        std::ostringstream buf;
+        buf << "===== main.cpp =====\n\n"
+            << cppFile.rdbuf()
+            << "\n\n===== static/index.html =====\n\n"
+            << htmlFile.rdbuf()
+            << "\n";
+
+        std::string escaped = htmlEscape(buf.str());
+
+        std::string body =
+            "<!DOCTYPE html><html><head><meta charset='UTF-8'>"
+            "<title>Air Travel Database – Source Code</title>"
+            "<style>"
+            "body{margin:0;background:#020617;color:#e5e7eb;"
+                "font-family:system-ui,-apple-system,BlinkMacSystemFont,\"SF Pro Text\",sans-serif;}"
+            ".code-page{min-height:100vh;display:flex;flex-direction:column;}"
+            ".code-header{padding:14px 20px;border-bottom:1px solid #1f2937;"
+                "font-size:14px;font-weight:500;background:#020617;"
+                "display:flex;align-items:center;gap:12px;}"
+            ".code-header span{color:#9ca3af;font-size:12px;}"
+            ".code-back{font-size:13px;color:#e5e7eb;text-decoration:none;"
+                "padding:4px 12px;border-radius:999px;border:1px solid #374151;"
+                "background:#020617;display:inline-flex;align-items:center;gap:6px;}"
+            ".code-back:hover{background:#111827;border-color:#4b5563;}"
+            ".code-body{padding:16px 20px 20px;}"
+            ".code-box{border-radius:12px;border:1px solid #1f2937;background:#020617;"
+                "box-shadow:0 18px 40px rgba(15,23,42,0.5);padding:14px 16px;overflow:auto;}"
+            ".code-box pre{margin:0;font-family:Menlo,Consolas,monospace;font-size:12px;"
+                "line-height:1.5;white-space:pre;}"
+            "</style>"
+            "</head><body>"
+            "<div class='code-page'>"
+              "<div class='code-header'>"
+                "<a href='/' class='code-back'>&larr; Back to app</a>"
+                "<span>Source viewer · main.cpp + static/index.html</span>"
+              "</div>"
+              "<div class='code-body'>"
+                "<div class='code-box'><pre><code>" + escaped + "</code></pre></div>"
+              "</div>"
+            "</div>"
+            "</body></html>";
+
+        crow::response res(body);
+        res.set_header("Content-Type", "text/html; charset=utf-8");
+        return res;
     });
 
     // ----------- NEW: Get Code (returns main.cpp contents) -----------
